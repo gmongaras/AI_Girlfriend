@@ -9,11 +9,11 @@ test_per = 0.1
 
 # Directories to the data
 data_dir = f"Finetuning{os.sep}data_clean"
-data_files = [str(i)+".txt" for i in range(1, 11)]
+data_files = [str(i)+".txt" for i in range(1, 101)]
 
 # Files to download/load data to
-train_file_name = f"Finetuning{os.sep}train_data_mini.txt"
-test_file_name = f"Finetuning{os.sep}test_data_mini.txt"
+train_file_name = f"Finetuning{os.sep}train_data.txt"
+test_file_name = f"Finetuning{os.sep}test_data.txt"
 
 # test/train data sizes
 test_size = 0

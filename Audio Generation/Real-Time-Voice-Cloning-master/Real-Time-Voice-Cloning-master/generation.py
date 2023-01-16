@@ -16,6 +16,7 @@ import os
 from warnings import warn
 from pygame import mixer
 import torchaudio
+import keyboard
 
 
 
@@ -240,5 +241,18 @@ if __name__ == "__main__":
     obj.load_from_browser("7.5.mp3", "data")
     obj.load_from_browser("8.5.mp3", "data")
 
-    obj.synthesize("Hey there!\nThank you for spending some time with me!\nI hope we can get to know each other better!")
-    obj.vocode()
+
+    while True:
+        # Get the text
+        print("Prompt: ", end="")
+        text = input()
+
+        if text == "":
+            break
+        
+        # Any punctuation is replaced with a newline
+        text = text.replace(".", "\n").replace("?", "\n").replace("!", "\n")
+
+        # Create the audio
+        obj.synthesize(text)
+        obj.vocode()
