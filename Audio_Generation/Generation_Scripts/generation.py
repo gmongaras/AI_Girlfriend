@@ -9,6 +9,9 @@ from .vocoder import inference as vocoder
 import os
 from pygame import mixer
 import torchaudio
+from scipy.io.wavfile import write
+from string import punctuation
+import re
 
 
 
@@ -104,7 +107,13 @@ class Audio_Obj:
         if self.synthesizer is None or seed is not None:
             self.init_synthesizer()
 
-        texts = text.split("\n")
+        # Split the text up by newline and some punctuation
+        r = re.compile(r'[{}]+'.format(re.escape("!?.\n,")))
+        texts = r.split(text)
+        if len(texts[-1]) == 0:
+            texts = texts[:-1]
+
+        # Embed the text
         embeds = [self.embed] * len(texts)
         specs = self.synthesizer.synthesize_spectrograms(texts, embeds)
         breaks = [spec.shape[1] for spec in specs]
@@ -132,7 +141,8 @@ class Audio_Obj:
     # synthesizer data
     # random_seed - Seed to initialize the model gneeration
     # traim_silences - True to trim excessive silences, False otherwise
-    def vocode(self, random_seed=None, trim_silences=False):
+    # play_audio - True to play audio, False to skip playing th audio
+    def vocode(self, random_seed=None, trim_silences=False, play_audio=True):
         # Get the currently generated spectogram
         speaker_name, spec, breaks, _ = self.current_generated
         assert spec is not None
@@ -172,12 +182,17 @@ class Audio_Obj:
         if trim_silences == True:
             wav = encoder.preprocess_wav(wav)
 
-        # Play the audio
         wav = torch.tensor(wav/np.abs(wav).max() * 0.97, dtype=torch.float32).unsqueeze(0)
-        torchaudio.save("tmp.mp3", wav, Synthesizer.sample_rate)
-        mixer.init()
-        mixer.music.load('tmp.mp3')
-        mixer.music.play()
+        try:
+            torchaudio.save("tmp.mp3", wav, Synthesizer.sample_rate)
+        except ValueError:
+            write("tmp.mp3", Synthesizer.sample_rate, wav.cpu().numpy().squeeze())
+
+        # Play the audio
+        if play_audio == True:
+            mixer.init()
+            s = mixer.Sound('tmp.mp3')
+            s.play()
 
         # # Compute the embedding
         # # TODO: this is problematic with different sampling rates, gotta fix it

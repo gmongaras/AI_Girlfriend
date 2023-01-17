@@ -282,7 +282,54 @@ pipe = StableDiffusionPipeline.from_pretrained(
 pipe.safety_checker = lambda images, clip_input: (images, False)
 
 
+# Load the custom audio models
+audioObj = None
+def load_custom_audio():
+    global audioObj
+
+    model_fpath = 'Audio_Generation/Generation_Scripts/saved_models/default/encoder.pt'
+    synth_path = 'Audio_Generation/Generation_Scripts/saved_models/default/synthesizer.pt'
+    vocode_path = 'Audio_Generation/Generation_Scripts/saved_models/default/vocoder.pt'
+
+    # Create a new object
+    audioObj = Audio_Obj(model_fpath, synth_path, vocode_path)
+
+    # Load in a file
+    p = "Audio_Generation/Generation_Scripts/data/albedo/"
+    audioObj.load_from_browser("1.5.mp3", p)
+    audioObj.load_from_browser("2.5.mp3", p)
+    audioObj.load_from_browser("3.5.mp3", p)
+    audioObj.load_from_browser("4.5.mp3", p)
+    audioObj.load_from_browser("5.5.mp3", p)
+    audioObj.load_from_browser("6.5.mp3", p)
+    audioObj.load_from_browser("7.5.mp3", p)
+    audioObj.load_from_browser("8.5.mp3", p)
+
+    # Create the audio
+    print("Testing custom audio...")
+    audioObj.synthesize("Hello there")
+    audioObj.vocode(play_audio=False)
+    print("Testing complete")
+
+
+# Create the audio clip
+def create_audio(text, custom_audio):
+    global audioObj
+    if custom_audio:
+        audioObj.synthesize(text)
+        audioObj.vocode(play_audio=False)
+    else:
+        myobj = gTTS(text=text, lang='en', slow=False)
+        myobj.save("tmp.mp3")
+
+
 def main():
+    custom_audio = True
+
+    # Load in the custom audio
+    if custom_audio:
+        load_custom_audio()
+
     global space_pressed
     # The prompt is initially a basic prompt telling GPT-3 who it is
     prompt = "You are my female waifu girlfriend who love me\n\n\n"
@@ -317,19 +364,23 @@ def main():
         prompt += f"Me: {text_prompt}\n"
         
         # Get the text from GPT3
-        ret_text = get_response(prompt).replace("You: ", "")
+        ret_text = get_response(prompt).replace("You: ", "").replace("Waifu: ", "")
         print(ret_text)
         
         # Create audio for the returned text
         if len(ret_text) > 3:
-            myobj = gTTS(text=ret_text, lang='en', slow=False)
+            # Create the audio clip
             pygame.mixer.stop()
             mixer.music.unload()
-            myobj.save("tmp.mp3")
+            create_audio(ret_text, custom_audio)
             
             # Play the audio
-            mixer.music.load('tmp.mp3')
-            mixer.music.play()
+            try:
+                mixer.music.load('tmp.mp3')
+                mixer.music.play()
+            except pygame.error:
+                s = mixer.Sound('tmp.mp3')
+                s.play()
             
             # Get the image prompt
             img_prompt = build_img_prompt(ret_text)
