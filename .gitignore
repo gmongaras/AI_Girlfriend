@@ -3,6 +3,9 @@ Finetuning/gathering_data
 Finetuning/data_clean
 Finetuning/outputs
 Finetuning/train_data.txt
-Audio Generation/Real-Time-Voice-Cloning-master/Real-Time-Voice-Cloning-master/saved_models
-Audio Generation/Real-Time-Voice-Cloning-master/Real-Time-Voice-Cloning-master/ind_generation/saved_models
-Audio Generation/Real-Time-Voice-Cloning-master/Real-Time-Voice-Cloning-master/ind_generation/data/
+Audio_Generation/Real-Time-Voice-Cloning-master/Real-Time-Voice-Cloning-master/saved_models
+Audio_Generation/Real-Time-Voice-Cloning-master/Real-Time-Voice-Cloning-master/ind_generation/saved_models
+Audio_Generation/Real-Time-Voice-Cloning-master/Real-Time-Voice-Cloning-master/ind_generation/data/
+D/
+Audio_Generation/Generation_Scripts/saved_models
+Audio_Generation/Generation_Scripts/data/

@@ -65,6 +65,7 @@ training_args = TrainingArguments(
     no_cuda=False,
     fp16=True,
     fp16_full_eval=True,
+    gradient_accumulation_steps =2
     )
 
 trainer = Trainer(
