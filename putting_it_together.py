@@ -187,7 +187,7 @@ def build_img_prompt(text):
     
     # Create the image prompt
     settings = "1girl, very wide shot, simple background, solo focus, feamle focus, looking at viewer, ratio:16:9"
-    characteristics = "waifu, female, brown hair, blue eyes, sidelocks, slight blush, fox ears"
+    characteristics = "waifu, female, brown hair, blue eyes, sidelocks, slight blush"#, fox ears"
     # sent = "furious"
     # summary = "'I hope get know better' to viewer"
     prompt = f"{settings} {characteristics} {','+sent if len(sent)!=0 else ''}, {summary}"
@@ -296,7 +296,7 @@ def load_custom_audio():
 
     # Load in a file
     p = "Audio_Generation/Generation_Scripts/data/albedo/"
-    audioObj.load_from_browser("1.5.mp3", p)
+    audioObj.load_from_browser("1.5.5.mp3", p)
     audioObj.load_from_browser("2.5.mp3", p)
     audioObj.load_from_browser("3.5.mp3", p)
     audioObj.load_from_browser("4.5.mp3", p)
@@ -332,7 +332,7 @@ def main():
 
     global space_pressed
     # The prompt is initially a basic prompt telling GPT-3 who it is
-    prompt = "You are my female waifu girlfriend who love me\n\n\n"
+    prompt = "You are my female waifu girlfriend who loves me\n\n\n"
     
     mixer.init()
     mixer.music.unload()
