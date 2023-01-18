@@ -24,6 +24,7 @@ import sys
 import msvcrt
 from transformers import pipeline
 from string import punctuation
+from keybert import KeyBERT
 
 
 # Stuff for custom voice
@@ -126,41 +127,22 @@ def get_sent(text):
 
 
 # Summary function
-def summarize(text, per):
-    nlp = spacy.load('en_core_web_sm')
-    doc= nlp(text)
-    tokens=[token.text for token in doc]
-    word_frequencies={}
-    for word in doc:
-        if word.text.lower() not in list(STOP_WORDS):
-            if word.text.lower() not in punctuation:
-                if word.text not in word_frequencies.keys():
-                    word_frequencies[word.text] = 1
-                else:
-                    word_frequencies[word.text] += 1
-    max_frequency=max(word_frequencies.values())
-    for word in word_frequencies.keys():
-        word_frequencies[word]=word_frequencies[word]/max_frequency
-    sentence_tokens= [sent for sent in doc.sents]
-    sentence_scores = {}
-    for sent in sentence_tokens:
-        for word in sent:
-            if word.text.lower() in word_frequencies.keys():
-                if sent not in sentence_scores.keys():                            
-                    sentence_scores[sent]=word_frequencies[word.text.lower()]
-                else:
-                    sentence_scores[sent]+=word_frequencies[word.text.lower()]
-    select_length=int(len(sentence_tokens)*per)
-    summary=nlargest(select_length, sentence_scores,key=sentence_scores.get)
-    final_summary=[word.text for word in summary]
-    summary=''.join(final_summary)
-    return summary
+def summarize(text):
+    global summ_model
+
+    # Get the keywords
+    keywords = summ_model.extract_keywords(text)
+
+    # Get keywords above a threshold
+    words = ", ".join([word[0] for word in keywords])
+
+    return words
 
 
 # Get the summary of the text
 def get_summ(text):
     # Get the summary
-    summary = summarize(text, 0.5)
+    summary = summarize(text)
     
     # Remove stopwords and puncuation from the summary
     filtered = [word for word in tokenizer.tokenize(summary) if word not in stopwords.words('english')]
@@ -178,7 +160,7 @@ def build_img_prompt(text, settings, characteristics):
     # characteristics = "waifu, female, brown hair, blue eyes, sidelocks, slight blush, fox ears"
     # sent = "furious"
     # summary = "'I hope get know better' to viewer"
-    prompt = f"{settings} {characteristics} {','+sent if len(sent)!=0 else ''}, {summary}"
+    prompt = f"{settings}, {characteristics}, {sent+', ' if sent != '' else ''}'{summary}' to viewer"
     return prompt
 
 # Get the audio input from the user
@@ -244,9 +226,9 @@ def get_audio_input():
     return text
 
 # Get the response from GPT-3
-def get_response_gpt(text):
+def get_response_gpt(text, GPT_key):
     # Open AI Key
-    openai.api_key = "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"
+    openai.api_key = GPT_key
     
     output = openai.Completion.create(
       model="text-davinci-003",
@@ -254,6 +236,8 @@ def get_response_gpt(text):
       max_tokens=50,
       temperature=0.7
     )
+
+    openai.api_key = None
     
     # Only allow the response to be one line
     resp = output["choices"][0]["text"].lstrip().split("\n")[0]
@@ -313,7 +297,7 @@ def load_custom_audio(audio_model_path, audio_data_path):
     audioObj = Audio_Obj(model_fpath, synth_path, vocode_path)
 
     # Load in a file
-    audioObj.load_from_browser("1.5.5.mp3", audio_data_path)
+    audioObj.load_from_browser("1.5.mp3", audio_data_path)
     audioObj.load_from_browser("2.5.mp3", audio_data_path)
     audioObj.load_from_browser("3.5.mp3", audio_data_path)
     audioObj.load_from_browser("4.5.mp3", audio_data_path)
@@ -340,7 +324,7 @@ def create_audio(text, custom_audio):
         myobj.save("tmp.mp3")
 
 
-def main(custom_audio, custom_model, img_settings, img_characteristics):
+def main(custom_audio, custom_model, img_settings, img_characteristics, GPT_key):
     # The prompt is initially a basic prompt telling GPT-3 who it is
     prompt = "You are my female waifu girlfriend who loves me\n\n\n\n"\
         "Me: Hi\nYou: Hello\n\n"\
@@ -381,7 +365,7 @@ def main(custom_audio, custom_model, img_settings, img_characteristics):
         if custom_model == True:
             ret_text = get_response_other(prompt)
         else:
-            ret_text = get_response_gpt(prompt)
+            ret_text = get_response_gpt(prompt, GPT_key)
 
         # Sometimes a stupid output will be placed at the
         # beginning like [Random name]: [words].
@@ -390,7 +374,7 @@ def main(custom_audio, custom_model, img_settings, img_characteristics):
 
         print(ret_text)
         
-        # Create audio for the returned text
+        # Create audio and the image for the returned text
         if len(ret_text) > 3:
             # Create the audio clip
             pygame.mixer.stop()
@@ -447,12 +431,10 @@ def on_release(key):
 
 
 # Params:
-#   custom_audio - Use custom audio or not?
-#   custom_model - Use a custom model or GPT
 #   audio_model_path - Path to the custom audio model
 #   audio_data_path - Path to the custom audio data
 #   custom_model_path - Path to the custom model to load in
-def setup(custom_audio, custom_model, audio_model_path=None, audio_data_path=None, custom_model_path=None):
+def setup(audio_model_path=None, audio_data_path=None, custom_model_path=None):
     # Puncuation tokenizer
     global tokenizer
     tokenizer = RegexpTokenizer(r'\w+')
@@ -481,6 +463,12 @@ def setup(custom_audio, custom_model, audio_model_path=None, audio_data_path=Non
     listener.start()
 
 
+
+    # Initialize the summary model
+    global summ_model
+    summ_model = KeyBERT()
+
+
     
 
     # Image generation model
@@ -499,15 +487,14 @@ def setup(custom_audio, custom_model, audio_model_path=None, audio_data_path=Non
 
     # Get the image generation model if
     # the GPT model is notused
-    if custom_model == True:
-        assert custom_model_path != None, "Custom model path cannot be none if using a custom model"
-        print("Initializing custom text model")
-        global other_model
-        other_model = pipeline('text-generation',model=custom_model_path,
-                      tokenizer='EleutherAI/gpt-neo-1.3B',max_new_tokens=50,
-                      torch_dtype=torch.float16,framework="pt",
-                      device=torch.device("cuda:0"))
-        print("Custom text model initialized!")
+    assert custom_model_path != None, "Custom model path cannot be none if using a custom model"
+    print("Initializing custom text model")
+    global other_model
+    other_model = pipeline('text-generation',model=custom_model_path,
+                    tokenizer='EleutherAI/gpt-neo-1.3B',max_new_tokens=50,
+                    torch_dtype=torch.float16,framework="pt",
+                    device=torch.device("cuda:0"))
+    print("Custom text model initialized!")
     # Otherwise, use the GPT model
 
     
@@ -518,12 +505,11 @@ def setup(custom_audio, custom_model, audio_model_path=None, audio_data_path=Non
     audioObj = None
 
     # Load in the custom audio
-    if custom_audio:
-        print("Initializing custom audio model")
-        assert audio_data_path != None, "Audio data path needs to be specified if using custom audio"
-        assert audio_model_path != None, "Audio model path needs to be specified is using custom audio"
-        load_custom_audio(audio_model_path, audio_data_path)
-        print("Custom audio model initialized!")
+    print("Initializing custom audio model")
+    assert audio_data_path != None, "Audio data path needs to be specified if using custom audio"
+    assert audio_model_path != None, "Audio model path needs to be specified is using custom audio"
+    load_custom_audio(audio_model_path, audio_data_path)
+    print("Custom audio model initialized!")
 
     # Initialize the audio mixer so audio can be played
     mixer.init()
@@ -556,8 +542,9 @@ if __name__=="__main__":
     img_characteristics = "waifu, female, brown hair, blue eyes, sidelocks, slight blush, fox ears"
     
     # Setup the interface
-    setup(custom_audio, custom_model, audio_model_path, audio_data_path, custom_model_path)
+    setup(audio_model_path, audio_data_path, custom_model_path)
     #test_audio(audio_model_path, audio_data_path)
 
     # Run the interface
-    main(custom_audio, custom_model, img_settings, img_characteristics)
+    GPT_key = "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"
+    main(custom_audio, custom_model, img_settings, img_characteristics, GPT_key)
