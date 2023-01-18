@@ -1,6 +1,6 @@
 import openai
-import requests
 from gtts import gTTS
+import pygame
 from pygame import mixer
 import torch
 from torch import autocast
@@ -13,48 +13,43 @@ from string import punctuation
 from heapq import nlargest
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
-import en_core_web_sm
 from pynput.keyboard import Key, Listener
 import os
 import time
-import pygame
 import speech_recognition as sr
 import pyaudio
 import wave
-import time
 from contextlib import contextmanager
 import sys
 import msvcrt
 from transformers import pipeline
-import torch
 from string import punctuation
 
 
 # Stuff for custom voice
-from Audio_Generation.Generation_Scripts.generation import str_enc, Audio_Obj
+from Audio_Generation.Generation_Scripts.generation import Audio_Obj
 
 
 
 
 
-def test_audio():
-    model_fpath = 'Audio_Generation/Generation_Scripts/saved_models/default/encoder.pt'
-    synth_path = 'Audio_Generation/Generation_Scripts/saved_models/default/synthesizer.pt'
-    vocode_path = 'Audio_Generation/Generation_Scripts/saved_models/default/vocoder.pt'
+def test_audio(audio_model_path, audio_data_path):
+    model_fpath = f'{audio_model_path}{os.sep}encoder.pt'
+    synth_path = f'{audio_model_path}{os.sep}synthesizer.pt'
+    vocode_path = f'{audio_model_path}{os.sep}vocoder.pt'
 
     # Create a new object
     obj = Audio_Obj(model_fpath, synth_path, vocode_path)
 
     # Load in a file
-    p = "Audio_Generation/Generation_Scripts/data/albedo/"
-    obj.load_from_browser("1.5.mp3", p)
-    obj.load_from_browser("2.5.mp3", p)
-    obj.load_from_browser("3.5.mp3", p)
-    obj.load_from_browser("4.5.mp3", p)
-    obj.load_from_browser("5.5.mp3", p)
-    obj.load_from_browser("6.5.mp3", p)
-    obj.load_from_browser("7.5.mp3", p)
-    obj.load_from_browser("8.5.mp3", p)
+    obj.load_from_browser("1.5.5.mp3", audio_data_path)
+    obj.load_from_browser("2.5.mp3", audio_data_path)
+    obj.load_from_browser("3.5.mp3", audio_data_path)
+    obj.load_from_browser("4.5.mp3", audio_data_path)
+    obj.load_from_browser("5.5.mp3", audio_data_path)
+    obj.load_from_browser("6.5.mp3", audio_data_path)
+    obj.load_from_browser("7.5.mp3", audio_data_path)
+    obj.load_from_browser("8.5.mp3", audio_data_path)
     
     # obj.load_from_browser("1.mp3", "data/shylily")
     # obj.load_from_browser("2.mp3", "data/shylily")
@@ -118,16 +113,6 @@ def suppress_stdout():
         finally:
             sys.stdout = old_stdout
 
-
-# Puncuation tokenizer
-tokenizer = RegexpTokenizer(r'\w+')
-
-# VADER sentiment analyzer
-sia = SentimentIntensityAnalyzer()
-
-# Audio recognizer
-r = sr.Recognizer()
-
 # Get the sentiment of text
 def get_sent(text):
     sents = sia.polarity_scores(text)
@@ -183,14 +168,14 @@ def get_summ(text):
     return " ".join(filtered)
 
 # Build a prompt for the image
-def build_img_prompt(text):
+def build_img_prompt(text, settings, characteristics):
     # Get the summary and sentiment
     sent = get_sent(text)
     summary = get_summ(text)
     
     # Create the image prompt
-    settings = "1girl, very wide shot, simple background, solo focus, feamle focus, looking at viewer, ratio:16:9, realistic, detailed"
-    characteristics = "waifu, female, brown hair, blue eyes, sidelocks, slight blush, fox ears"
+    # settings = "1girl, very wide shot, simple background, solo focus, female focus, looking at viewer, ratio:16:9, detailed"
+    # characteristics = "waifu, female, brown hair, blue eyes, sidelocks, slight blush, fox ears"
     # sent = "furious"
     # summary = "'I hope get know better' to viewer"
     prompt = f"{settings} {characteristics} {','+sent if len(sent)!=0 else ''}, {summary}"
@@ -275,12 +260,6 @@ def get_response_gpt(text):
     
     return resp
 
-# Load in the other model
-other_model = pipeline('text-generation',model="Finetuning/outputs/r/",
-                      tokenizer='EleutherAI/gpt-neo-1.3B',max_new_tokens=50,
-                      torch_dtype=torch.float16,framework="pt",
-                      device=torch.device("cuda:0"))
-
 # Get a response from the other model
 def get_response_other(text):
     # How many newlines are there?
@@ -322,38 +301,26 @@ def get_response_other(text):
 
     return cur_out
 
-# Get the image generation model
-pipe = StableDiffusionPipeline.from_pretrained(
-    'hakurei/waifu-diffusion',
-    torch_dtype=torch.float16,
-    cache_dir="D:/python-libs/hugging-face-cache",
-).to('cuda')
-# Remove filter
-pipe.safety_checker = lambda images, clip_input: (images, False)
-
 
 # Load the custom audio models
-audioObj = None
-def load_custom_audio():
+def load_custom_audio(audio_model_path, audio_data_path):
     global audioObj
-
-    model_fpath = 'Audio_Generation/Generation_Scripts/saved_models/default/encoder.pt'
-    synth_path = 'Audio_Generation/Generation_Scripts/saved_models/default/synthesizer.pt'
-    vocode_path = 'Audio_Generation/Generation_Scripts/saved_models/default/vocoder.pt'
+    model_fpath = f'{audio_model_path}{os.sep}encoder.pt'
+    synth_path = f'{audio_model_path}{os.sep}synthesizer.pt'
+    vocode_path = f'{audio_model_path}{os.sep}vocoder.pt'
 
     # Create a new object
     audioObj = Audio_Obj(model_fpath, synth_path, vocode_path)
 
     # Load in a file
-    p = "Audio_Generation/Generation_Scripts/data/albedo/"
-    audioObj.load_from_browser("1.5.5.mp3", p)
-    audioObj.load_from_browser("2.5.mp3", p)
-    audioObj.load_from_browser("3.5.mp3", p)
-    audioObj.load_from_browser("4.5.mp3", p)
-    audioObj.load_from_browser("5.5.mp3", p)
-    audioObj.load_from_browser("6.5.mp3", p)
-    audioObj.load_from_browser("7.5.mp3", p)
-    audioObj.load_from_browser("8.5.mp3", p)
+    audioObj.load_from_browser("1.5.5.mp3", audio_data_path)
+    audioObj.load_from_browser("2.5.mp3", audio_data_path)
+    audioObj.load_from_browser("3.5.mp3", audio_data_path)
+    audioObj.load_from_browser("4.5.mp3", audio_data_path)
+    audioObj.load_from_browser("5.5.mp3", audio_data_path)
+    audioObj.load_from_browser("6.5.mp3", audio_data_path)
+    audioObj.load_from_browser("7.5.mp3", audio_data_path)
+    audioObj.load_from_browser("8.5.mp3", audio_data_path)
 
     # Create the audio
     print("Testing custom audio...")
@@ -373,26 +340,16 @@ def create_audio(text, custom_audio):
         myobj.save("tmp.mp3")
 
 
-def main():
-    # Use custom audio or not
-    custom_audio = True
-
-    # Use custom model or GPT3
-    custom_model = True
-
-    # Load in the custom audio
-    if custom_audio:
-        load_custom_audio()
-
-    global space_pressed
+def main(custom_audio, custom_model, img_settings, img_characteristics):
     # The prompt is initially a basic prompt telling GPT-3 who it is
     prompt = "You are my female waifu girlfriend who loves me\n\n\n\n"\
         "Me: Hi\nYou: Hello\n\n"\
         "Me: How are you?\nYou: Good. How are you?\n\n"\
         "Me: I'm good.\nYou: Nice to meet you.\n\n"
     
-    mixer.init()
-    mixer.music.unload()
+    global space_pressed
+    global pipe
+
     while True:
         # Wait for person to press space
         print("Press space to talk to my waifu")
@@ -449,7 +406,7 @@ def main():
                 s.play()
             
             # Get the image prompt
-            img_prompt = build_img_prompt(ret_text)
+            img_prompt = build_img_prompt(ret_text, img_settings, img_characteristics)
             
             # Get the image
             with suppress_stdout():
@@ -468,15 +425,7 @@ def main():
         
         # Add the new text to the prompt
         prompt += f"You: {ret_text}\n"
-    
 
-
-
-
-
-# Is enter or space pressed?
-enter_pressed = False
-space_pressed = False
 
 def on_press(key):
     global enter_pressed
@@ -493,12 +442,122 @@ def on_release(key):
 
 
 
-if __name__=="__main__":
-    # Collect events until released
+
+
+
+
+# Params:
+#   custom_audio - Use custom audio or not?
+#   custom_model - Use a custom model or GPT
+#   audio_model_path - Path to the custom audio model
+#   audio_data_path - Path to the custom audio data
+#   custom_model_path - Path to the custom model to load in
+def setup(custom_audio, custom_model, audio_model_path=None, audio_data_path=None, custom_model_path=None):
+    # Puncuation tokenizer
+    global tokenizer
+    tokenizer = RegexpTokenizer(r'\w+')
+
+    # VADER sentiment analyzer
+    global sia
+    sia = SentimentIntensityAnalyzer()
+
+    # Audio recognizer
+    global r
+    r = sr.Recognizer()
+
+
+
+    # Is enter or space pressed? Currently
+    # this is False
+    global enter_pressed
+    global space_pressed
+    enter_pressed = False
+    space_pressed = False
+
+    # Used to collect keyboard events
     listener = Listener(
         on_press=on_press,
         on_release=on_release)
     listener.start()
 
-    # test_audio()
-    main()
+
+    
+
+    # Image generation model
+    print("Initializing image model...")
+    global pipe
+    pipe = StableDiffusionPipeline.from_pretrained(
+        'hakurei/waifu-diffusion',
+        torch_dtype=torch.float16,
+        cache_dir="D:/python-libs/hugging-face-cache",
+    ).to('cuda')
+    # Remove filter
+    pipe.safety_checker = lambda images, clip_input: (images, False)
+    print("Image model initialized!")
+
+
+
+    # Get the image generation model if
+    # the GPT model is notused
+    if custom_model == True:
+        assert custom_model_path != None, "Custom model path cannot be none if using a custom model"
+        print("Initializing custom text model")
+        global other_model
+        other_model = pipeline('text-generation',model=custom_model_path,
+                      tokenizer='EleutherAI/gpt-neo-1.3B',max_new_tokens=50,
+                      torch_dtype=torch.float16,framework="pt",
+                      device=torch.device("cuda:0"))
+        print("Custom text model initialized!")
+    # Otherwise, use the GPT model
+
+    
+
+    # Audio object is initially None, but
+    # will be replace later
+    global audioObj
+    audioObj = None
+
+    # Load in the custom audio
+    if custom_audio:
+        print("Initializing custom audio model")
+        assert audio_data_path != None, "Audio data path needs to be specified if using custom audio"
+        assert audio_model_path != None, "Audio model path needs to be specified is using custom audio"
+        load_custom_audio(audio_model_path, audio_data_path)
+        print("Custom audio model initialized!")
+
+    # Initialize the audio mixer so audio can be played
+    mixer.init()
+    mixer.music.unload()
+
+
+
+
+
+
+
+if __name__=="__main__":
+    # Use custom audio or not
+    custom_audio = True
+
+    # Use custom model or GPT3
+    custom_model = True
+
+    # Path to the custom audio model
+    audio_model_path = "Audio_Generation/Generation_Scripts/saved_models/default"
+
+    # Path to the custom audio data
+    audio_data_path = "Audio_Generation/Generation_Scripts/data/albedo"
+
+    # Path to the custom model to load in
+    custom_model_path = "Finetuning/outputs/r/"
+
+    # Settings and characteristics for the output image
+    img_settings = "1girl, very wide shot, simple background, solo focus, female focus, looking at viewer, ratio:16:9, detailed"
+    img_characteristics = "waifu, female, brown hair, blue eyes, sidelocks, slight blush, fox ears"
+    
+    # Setup the interface
+    setup(custom_audio, custom_model, audio_model_path, audio_data_path, custom_model_path)
+    #test_audio(audio_model_path, audio_data_path)
+
+    # Run the interface
+    main(custom_audio, custom_model, img_settings, img_characteristics)
