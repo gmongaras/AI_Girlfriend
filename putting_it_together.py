@@ -25,6 +25,9 @@ import time
 from contextlib import contextmanager
 import sys
 import msvcrt
+from transformers import pipeline
+import torch
+from string import punctuation
 
 
 # Stuff for custom voice
@@ -186,8 +189,8 @@ def build_img_prompt(text):
     summary = get_summ(text)
     
     # Create the image prompt
-    settings = "1girl, very wide shot, simple background, solo focus, feamle focus, looking at viewer, ratio:16:9"
-    characteristics = "waifu, female, brown hair, blue eyes, sidelocks, slight blush"#, fox ears"
+    settings = "1girl, very wide shot, simple background, solo focus, feamle focus, looking at viewer, ratio:16:9, realistic, detailed"
+    characteristics = "waifu, female, brown hair, blue eyes, sidelocks, slight blush, fox ears"
     # sent = "furious"
     # summary = "'I hope get know better' to viewer"
     prompt = f"{settings} {characteristics} {','+sent if len(sent)!=0 else ''}, {summary}"
@@ -256,7 +259,7 @@ def get_audio_input():
     return text
 
 # Get the response from GPT-3
-def get_response(text):
+def get_response_gpt(text):
     # Open AI Key
     openai.api_key = "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"
     
@@ -271,6 +274,53 @@ def get_response(text):
     resp = output["choices"][0]["text"].lstrip().split("\n")[0]
     
     return resp
+
+# Load in the other model
+other_model = pipeline('text-generation',model="Finetuning/outputs/r/",
+                      tokenizer='EleutherAI/gpt-neo-1.3B',max_new_tokens=50,
+                      torch_dtype=torch.float16,framework="pt",
+                      device=torch.device("cuda:0"))
+
+# Get a response from the other model
+def get_response_other(text):
+    # How many newlines are there?
+    num = text.count("\n")
+
+    # Get the model output. at the correct position
+    output = other_model(text)[0]['generated_text'].split("\n")
+    output_new = output[num].strip()
+
+    # Make sure the output is not blank
+    tmp = 1
+    #output_new = output_new.replace("You:", "").replace("Person:", "")
+    while output_new == "":
+        output_new = output[num+tmp].strip()
+        tmp += 1
+        
+    # If the model is generating newlines after its text,
+    # it may want to say more
+    cur_out = output_new
+    more_max = 0 # Max limit on how much more to add
+    more_added = 0 # Current extra added
+    while more_added < more_max:
+        try:
+            if output[num+tmp].strip() == "":
+                break # Break is a \n\n is reached. Keep going if only \n
+            out_new = output[num+tmp].strip()
+            if out_new not in punctuation:
+                out_new += "."
+            cur_out += f" {out_new}"
+            more_added += 1
+            tmp += 1
+
+            # If a question make was the last letter,
+            # stop adding more lines
+            if cur_out[-1] == "?":
+                break
+        except IndexError:
+            break
+
+    return cur_out
 
 # Get the image generation model
 pipe = StableDiffusionPipeline.from_pretrained(
@@ -324,7 +374,11 @@ def create_audio(text, custom_audio):
 
 
 def main():
+    # Use custom audio or not
     custom_audio = True
+
+    # Use custom model or GPT3
+    custom_model = True
 
     # Load in the custom audio
     if custom_audio:
@@ -332,7 +386,10 @@ def main():
 
     global space_pressed
     # The prompt is initially a basic prompt telling GPT-3 who it is
-    prompt = "You are my female waifu girlfriend who loves me\n\n\n"
+    prompt = "You are my female waifu girlfriend who loves me\n\n\n\n"\
+        "Me: Hi\nYou: Hello\n\n"\
+        "Me: How are you?\nYou: Good. How are you?\n\n"\
+        "Me: I'm good.\nYou: Nice to meet you.\n\n"
     
     mixer.init()
     mixer.music.unload()
@@ -363,8 +420,17 @@ def main():
         # Add the text to the current prompt
         prompt += f"Me: {text_prompt}\n"
         
-        # Get the text from GPT3
-        ret_text = get_response(prompt).replace("You: ", "").replace("Waifu: ", "")
+        # Get the text from the model
+        if custom_model == True:
+            ret_text = get_response_other(prompt)
+        else:
+            ret_text = get_response_gpt(prompt)
+
+        # Sometimes a stupid output will be placed at the
+        # beginning like [Random name]: [words].
+        # let's remove these
+        ret_text = ret_text.split(":")[-1]
+
         print(ret_text)
         
         # Create audio for the returned text
