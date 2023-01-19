@@ -4,7 +4,7 @@ import sounddevice as sd
 
 from .encoder import inference as encoder
 from .synthesizer.inference import Synthesizer
-from .toolbox.utterance import Utterance
+# from .toolbox.utterance import Utterance
 from .vocoder import inference as vocoder
 import os
 from pygame import mixer
@@ -12,6 +12,12 @@ import torchaudio
 from scipy.io.wavfile import write
 from string import punctuation
 import re
+
+from collections import namedtuple
+
+Utterance = namedtuple("Utterance", "name speaker_name wav spec embed partial_embeds synth")
+Utterance.__eq__ = lambda x, y: x.name == y.name
+Utterance.__hash__ = lambda x: hash(x.name)
 
 
 

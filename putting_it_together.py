@@ -13,7 +13,6 @@ from string import punctuation
 from heapq import nlargest
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
-from pynput.keyboard import Key, Listener
 import os
 import time
 import speech_recognition as sr
@@ -21,7 +20,6 @@ import pyaudio
 import wave
 from contextlib import contextmanager
 import sys
-import msvcrt
 from transformers import pipeline
 from string import punctuation
 from keybert import KeyBERT
@@ -325,13 +323,62 @@ def create_audio(text, custom_audio):
 
 
 def main(custom_audio, custom_model, img_settings, img_characteristics, GPT_key):
+    """
+    We only need keyboard info in main
+
+    The reason the imports are here is so this script can
+    be run independently from google colab, but
+    google colab can still use these functions. Google
+    colab dies when trying to use these function, so
+    I'm just not going to use them
+    """
+    from pynput.keyboard import Key, Listener
+
+    # Is enter or space pressed? Currently
+    # this is False
+    global enter_pressed
+    global space_pressed
+    enter_pressed = False
+    space_pressed = False
+
+    # Key capture functions
+    global on_press
+    global on_release
+    def on_press(key):
+        global enter_pressed
+        global space_pressed
+        if key == Key.enter:
+            enter_pressed = True
+        elif key == Key.space:
+            space_pressed = True
+    def on_release(key):
+        global enter_pressed
+        global space_pressed
+        enter_pressed = False
+        space_pressed = False
+
+    # Used to collect keyboard events
+    listener = Listener(
+        on_press=on_press,
+        on_release=on_release)
+    listener.start()
+
+
+    # Like with the previous one, this module is only
+    # availble on windows, so I'm just going to import
+    # it here so colab can actually run
+    import msvcrt
+
+
+
+
+
+
     # The prompt is initially a basic prompt telling GPT-3 who it is
     prompt = "You are my female waifu girlfriend who loves me\n\n\n\n"\
         "Me: Hi\nYou: Hello\n\n"\
         "Me: How are you?\nYou: Good. How are you?\n\n"\
         "Me: I'm good.\nYou: Nice to meet you.\n\n"
-    
-    global space_pressed
     global pipe
 
     while True:
@@ -411,20 +458,6 @@ def main(custom_audio, custom_model, img_settings, img_characteristics, GPT_key)
         prompt += f"You: {ret_text}\n"
 
 
-def on_press(key):
-    global enter_pressed
-    global space_pressed
-    if key == Key.enter:
-        enter_pressed = True
-    elif key == Key.space:
-        space_pressed = True
-def on_release(key):
-    global enter_pressed
-    global space_pressed
-    enter_pressed = False
-    space_pressed = False
-
-
 
 
 
@@ -446,21 +479,6 @@ def setup(audio_model_path=None, audio_data_path=None, custom_model_path=None):
     # Audio recognizer
     global r
     r = sr.Recognizer()
-
-
-
-    # Is enter or space pressed? Currently
-    # this is False
-    global enter_pressed
-    global space_pressed
-    enter_pressed = False
-    space_pressed = False
-
-    # Used to collect keyboard events
-    listener = Listener(
-        on_press=on_press,
-        on_release=on_release)
-    listener.start()
 
 
 
@@ -512,8 +530,11 @@ def setup(audio_model_path=None, audio_data_path=None, custom_model_path=None):
     print("Custom audio model initialized!")
 
     # Initialize the audio mixer so audio can be played
-    mixer.init()
-    mixer.music.unload()
+    try:
+        mixer.init()
+        mixer.music.unload()
+    except:
+        pass
 
 
 
