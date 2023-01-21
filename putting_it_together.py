@@ -99,11 +99,15 @@ def test_audio(audio_model_path, audio_data_path):
 
 class WaifuObj:
     # Params:
+    #   initial_summary - String to initialize the summary to (tells
+    #                    the model who it is)
+    #   initial_prompt - String to initialize the prompt to (tells
+    #                    the model how to respond)
     #   load_custom_audio - True to load custom audio. False otherwise
     #   audio_model_path - Path to the custom audio model
     #   audio_data_path - Path to the custom audio data
     #   custom_model_path - Path to the custom model to load in
-    def __init__(self, load_custom_audio=False, audio_model_path=None, audio_data_path=None, custom_model_path=None):
+    def __init__(self, initial_summary="", initial_prompt="", load_custom_audio=False, audio_model_path=None, audio_data_path=None, custom_model_path=None):
         # Puncuation tokenizer
         self.tokenizer = RegexpTokenizer(r'\w+')
 
@@ -140,7 +144,8 @@ class WaifuObj:
         self.other_text_model = pipeline('text-generation',model=custom_model_path,
                         tokenizer='EleutherAI/gpt-neo-1.3B',max_new_tokens=50,
                         torch_dtype=torch.float16,framework="pt",
-                        device=torch.device("cuda:0"))
+                        device=torch.device("cuda:0"),
+                        pad_token_id=50256)
         print("Custom text model initialized!")
         # Otherwise, use the GPT model
 
@@ -179,13 +184,13 @@ class WaifuObj:
         """
         # Sizes of the three parts
         self.summ_size_max = 256 # Used for 1
-        self.block_size = 100 # Used for 2 and 3
-        self.num_blocks = 8 # Used for 2
+        self.block_size = 200 # Used for 2 and 3
+        self.num_blocks = 4 # Used for 2
 
         # the three parts
-        self.past_summ = "" #  1
+        self.past_summ = initial_summary #  1
         self.past_output = ["" for i in range(self.num_blocks)] # 2
-        self.cur_hist = "" # 3
+        self.cur_prompt = initial_prompt # 3
 
         
 
@@ -405,28 +410,76 @@ class WaifuObj:
 
     # Summarize the text so far.
     def summarize_text(self):
-        pass
+        # If the prompt is over the block size, save it
+        # to memory. Summarization comes later
+        if len(self.cur_prompt.split(" ")) > self.block_size:
+            # Get a subset which of the block size
+            splt = self.cur_prompt.split(" ")
+            subset = " ".join(splt[:self.block_size]) + " "
+
+            # The rest is the current prompt
+            self.cur_prompt = " ".join(splt[self.block_size:])
+
+            # Get the oldest item in the past output and clean it
+            oldest_item = self.past_output[0]
+            oldest_item = oldest_item.replace("You: ", "").replace("Me: ", "").replace("  ", " ").replace("  ", " ").replace("  ", " ").replace("  ", " ")
+
+            # Store the subset and move all subsets
+            # up in the queue
+            self.past_output = self.past_output[1:] + [subset]
+
+
+
+
+            # If the oldest item is not "", summarize it
+            # Summarize the subset
+            if oldest_item != "":
+                # Summarize it as the current summary
+                self.past_summ = self.summarizer(
+                    self.past_summ + "\n\n\n\n" + oldest_item,
+                    min_length=16,
+                    max_length=512,
+                    no_repeat_ngram_size=3,
+                    repetition_penalty=5.0,
+                    num_beams=4, # Note: Over 4 beams and the model kills my computer
+                    early_stopping=True,
+                )[0]["summary_text"]
 
 
     # Function to get a response and deal with the
     # response
-    def get_response(self, prompt, GPT_key=None):
+    def get_response(self, GPT_key=None):
+        """
+        The text used to respond is creafted upon
+        all three components in the history.
+        It will look like the following:
+        [summary of the past]\n\n\n\n
+        [saved prompts from the past][current prompt]
+        """
+        text = self.past_summ + "\n\n\n\n" +\
+            "".join(self.past_output)+\
+            self.cur_prompt
+
         # If the key is None, get a response from the
         # other model
         if GPT_key is None:
-            resp = self.get_response_other(prompt)
+            resp = self.get_response_other(text)
         else:
-            resp = self.get_response_gpt(prompt, GPT_key)
+            resp = self.get_response_gpt(text, GPT_key)
 
         # Sometimes a stupid output will be placed at the
         # beginning like [Random name]: [words].
         # let's remove these
-        resp = resp.split(":")[-1]
+        resp = resp.split(":")[-1].strip()
+
+        # Add the new text to the prompt
+        self.cur_prompt += f"You: {resp}\n\n"
 
         # Before returning the respnse, we need to make sure
         # the text is being summarized
         self.summarize_text()
 
+        # Return the response
         return resp
 
 
@@ -526,13 +579,6 @@ def main(obj, custom_audio, custom_model, img_settings, img_characteristics, GPT
 
 
 
-
-    # The prompt is initially a basic prompt telling GPT-3 who it is
-    prompt = "You are my female waifu girlfriend who loves me\n\n\n\n"\
-        "Me: Hi\nYou: Hello\n\n"\
-        "Me: How are you?\nYou: Good. How are you?\n\n"\
-        "Me: I'm good.\nYou: Nice to meet you.\n\n"
-
     while True:
         # Wait for person to press space
         print("Press space to talk to my waifu")
@@ -558,13 +604,13 @@ def main(obj, custom_audio, custom_model, img_settings, img_characteristics, GPT
             text_prompt = input()
         
         # Add the text to the current prompt
-        prompt += f"Me: {text_prompt}\n"
+        obj.cur_prompt += f"Me: {text_prompt}\n"
         
         # Get the text from the model
         if custom_model == True:
-            ret_text = obj.get_response_other(prompt)
+            ret_text = obj.get_response()
         else:
-            ret_text = obj.get_response_gpt(prompt, GPT_key)
+            ret_text = obj.get_response(GPT_key)
 
         print(ret_text)
         
@@ -598,9 +644,6 @@ def main(obj, custom_audio, custom_model, img_settings, img_characteristics, GPT
             ax.imshow(image)
             plt.show()
             del image
-        
-        # Add the new text to the prompt
-        prompt += f"You: {ret_text}\n"
 
 
 
@@ -609,6 +652,13 @@ def main(obj, custom_audio, custom_model, img_settings, img_characteristics, GPT
 
 
 if __name__=="__main__":
+    # The initial summary is initially a basic prompt telling GPT-3 who it is
+    initial_summ = "You are my female waifu girlfriend who loves me."\
+    # The initial prompt tells GPT-3 how to respond
+    initial_prompt = "Me: Hi\nYou: Hello\n"\
+        "Me: How are you?\nYou: Good. How are you?\n"\
+        "Me: I'm good.\nYou: Nice to meet you.\n"
+
     # Use custom audio or not
     custom_audio = False
 
@@ -629,7 +679,7 @@ if __name__=="__main__":
     img_characteristics = "waifu, female, brown hair, blue eyes, sidelocks, slight blush, fox ears"
     
     # Setup the interface
-    obj = WaifuObj(False, audio_model_path, audio_data_path, custom_model_path)
+    obj = WaifuObj(initial_summ, initial_prompt, False, audio_model_path, audio_data_path, custom_model_path)
     # setup(False, audio_model_path, audio_data_path, custom_model_path)
     #test_audio(audio_model_path, audio_data_path)
 
