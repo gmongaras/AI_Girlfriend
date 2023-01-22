@@ -9,6 +9,7 @@ Audio_Generation/Real-Time-Voice-Cloning-master/Real-Time-Voice-Cloning-master/i
 D/
 Audio_Generation/Generation_Scripts/saved_models
 Audio_Generation/Generation_Scripts/data/
+Talking_Head/talking-head-anime-2-demo/data/*.pt
 
 
 

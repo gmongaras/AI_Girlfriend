@@ -24,6 +24,7 @@ from transformers import pipeline
 from string import punctuation
 from keybert import KeyBERT
 import asyncio
+import json
 
 
 
@@ -107,7 +108,9 @@ class WaifuObj:
     #   audio_model_path - Path to the custom audio model
     #   audio_data_path - Path to the custom audio data
     #   custom_model_path - Path to the custom model to load in
-    def __init__(self, initial_summary="", initial_prompt="", load_custom_audio=False, audio_model_path=None, audio_data_path=None, custom_model_path=None):
+    #   saved_memory - (Optionl) path to the json file with the
+    #                   saved memory to load in
+    def __init__(self, initial_summary="", initial_prompt="", load_custom_audio=False, audio_model_path=None, audio_data_path=None, custom_model_path=None, saved_memory=None):
         # Puncuation tokenizer
         self.tokenizer = RegexpTokenizer(r'\w+')
 
@@ -192,6 +195,17 @@ class WaifuObj:
         self.past_output = ["" for i in range(self.num_blocks)] # 2
         self.cur_prompt = initial_prompt # 3
 
+        # Dictionary used to save the model state
+        self.disc_json = dict(
+            past_summ=self.past_summ,
+            past_output=self.past_output,
+            cur_prompt=self.cur_prompt,
+        )
+
+        # Load in the memory if there is any
+        if saved_memory is not None:
+            self.load_memory(saved_memory)
+
         
 
         # Audio object is initially None, but
@@ -223,6 +237,19 @@ class WaifuObj:
 
 
 
+
+    # Load in memory from a saved file
+    def load_memory(self, filename):
+        # Load in the dictionary
+        self.disc_json = json.load(open(filename, "r"))
+        assert "past_summ" in self.disc_json, "Loaded file must have past_summ key"
+        assert "past_output" in self.disc_json, "Loaded file must have past_output key"
+        assert "cur_prompt" in self.disc_json, "Loaded file must have cur_prompt key"
+
+        # Extract the data
+        self.past_summ = self.disc_json["past_summ"]
+        self.past_output = self.disc_json["past_output"]
+        self.cur_prompt = self.disc_json["cur_prompt"]
 
 
 
@@ -444,6 +471,13 @@ class WaifuObj:
                     num_beams=4, # Note: Over 4 beams and the model kills my computer
                     early_stopping=True,
                 )[0]["summary_text"]
+        
+        # When saving is done, save files to disk
+        self.disc_json = dict(
+            past_summ=self.past_summ,
+            past_output=self.past_output,
+            cur_prompt=self.cur_prompt,
+        )
 
 
     # Function to get a response and deal with the
@@ -478,6 +512,11 @@ class WaifuObj:
         # Before returning the respnse, we need to make sure
         # the text is being summarized
         self.summarize_text()
+
+        # After the text has been update, update the
+        # dictionary and save it
+        self.disc_json["cur_prompt"] = self.cur_prompt
+        json.dump(self.disc_json, open("config_file.json", "w"))
 
         # Return the response
         return resp
@@ -528,7 +567,7 @@ class WaifuObj:
 
 
 # Main loop that uses the object
-def main(obj, custom_audio, custom_model, img_settings, img_characteristics, GPT_key):
+def main(obj, custom_audio, custom_model, img_settings, img_characteristics, guidance_scale, GPT_key):
     """
     We only need keyboard info in main
 
@@ -635,7 +674,7 @@ def main(obj, custom_audio, custom_model, img_settings, img_characteristics, GPT
             # Get the image
             with obj.suppress_stdout():
                 with autocast("cuda"):
-                    image = obj.imgGen(img_prompt, guidance_scale=10)["images"][0]
+                    image = obj.imgGen(img_prompt, guidance_scale=guidance_scale)["images"][0]
         
             # Show the image
             fig, ax = plt.subplots()
@@ -677,12 +716,14 @@ if __name__=="__main__":
     # Settings and characteristics for the output image
     img_settings = "1girl, very wide shot, simple background, solo focus, female focus, looking at viewer, ratio:16:9, detailed"
     img_characteristics = "waifu, female, brown hair, blue eyes, sidelocks, slight blush, fox ears"
+    guidance_scale = 10.0
     
     # Setup the interface
-    obj = WaifuObj(initial_summ, initial_prompt, False, audio_model_path, audio_data_path, custom_model_path)
+    memory_file = "config_file.json"
+    obj = WaifuObj(initial_summ, initial_prompt, False, audio_model_path, audio_data_path, custom_model_path, memory_file)
     # setup(False, audio_model_path, audio_data_path, custom_model_path)
     #test_audio(audio_model_path, audio_data_path)
 
     # Run the interface
     GPT_key = "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"
-    main(obj, custom_audio, custom_model, img_settings, img_characteristics, GPT_key)
+    main(obj, custom_audio, custom_model, img_settings, img_characteristics, guidance_scale, GPT_key)
