@@ -13,6 +13,7 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib import animation
 import random
+import math
 
 
 
@@ -73,8 +74,9 @@ import random
 
 class Talking_Head():
     # device - Device to put the model on
+    # blink_time - (optional) Time for each blink cycle
     # img_path - (Optional) Path to the image to load
-    def __init__(self, device, img_path=None):
+    def __init__(self, device, blink_time=0.5, img_path=None):
         self.device = device
 
         # Load in the model
@@ -90,11 +92,32 @@ class Talking_Head():
         self.pose = torch.zeros((42)).to(self.device)
 
         # The configuration cycle for blinking
-        self.eye_percent = [0.25, 0.5, 0.75, 1, 0.75, 0.5, 0.25, 0, 0, 0]
-        self.dilate_percent = [0, 0.2, 0.4, 0.8, 0.4, 0.2, 0, 0, 0, 0]
+        # self.eye_percent = [0.25, 0.5, 0.75, 1, 0.75, 0.5, 0.25, 0, 0, 0]
+        # self.dilate_percent = [0, 0.2, 0.4, 0.8, 0.4, 0.2, 0, 0, 0, 0]
+        self.eye_cycle_num = 0               # Current eye cycle index
+        self.cycle_end = False               # Has the blink cycle ended?
+        self.num_frames = 0                  # Initial frame count to blink
+        self.midpoint = 0
+        self.total_blink_time_i = blink_time # Total time for a single blink cycle
+
+        # Increase the total blink cycle time by 2 so that it has a chance to
+        # actually work. If this isn't set to a high value at first, it
+        # will not end up working for some reason. I think the GPU just
+        # needs time to warm up
+        self.total_blink_time = 2
 
         # configuration cycle for talking
         self.talking_percent = [0, 0.2, 0.4, 0.8, 0.4, 0.2, 0, 0, 0, 0]
+
+        # EMA giving the expected value of the new image generation.
+        # This statistic will be used as a correcting factor
+        self.EMA_rate = 0.1
+        self.EMA = 0
+
+
+    # Used to update the EMA
+    def update_EMA(self, val):
+        self.EMA = (1-self.EMA_rate)*self.EMA + self.EMA_rate*val
 
 
 
@@ -173,28 +196,78 @@ class Talking_Head():
     # Change the pose of the stored image using the
     # stored vector state
     def change_pose(self):
+        # Start timing this function for the EMA
+        start = time.time()
+
         # Pose the image
         output_image = self.poser.pose(self.torch_input_image, self.pose)[0]
         
         # Get the image
-        return self.get_pytorch_image(output_image, numpy_bg=self.numpy_bg)
+        img = self.get_pytorch_image(output_image, numpy_bg=self.numpy_bg)
+
+        # End the timer
+        val = time.time()-start
+
+        # Update the EMA
+        self.update_EMA(val)
+
+        return img
 
 
 
     # Given a position value, return the updated vector
     # for the new face with the eyes moved to the next position
-    # pos - Current movement position. Cen be cumulative
-    #       or in the range of possible values
-    def Move_eyes(self, pos):
-        # Get the new position
-        eye_per = self.eye_percent[pos%len(self.eye_percent)]
-        dilate_per = self.dilate_percent[pos%len(self.dilate_percent)]
+    def Move_eyes(self):
+        blink_time = self.total_blink_time
 
-        # Update the vector to make the image blink
+        # Get the eye cycle. The cycle has `midpoint` number
+        # of values to move the eye down and back up
+        eye_cycle = [i/max(1, self.midpoint-1) for i in range(0, self.midpoint)]
+        eye_cycle += eye_cycle[::-1][1:]
+
+        # The dilation cycle is the same as the eye cycle, but
+        # the cycle start later and ends earlier. This cycle should
+        # be 0 during the beginning and last frames
+        dilate_cycle = [0] + [i/(self.midpoint+1) for i in range(0, self.midpoint-1)]
+        dilate_cycle += dilate_cycle[::-1][1:]
+
+        # Get the value in the cycle. The value in the
+        # cycle is the current cycle number. If the EMA
+        # was too large, this may overshoot, so default
+        # to a value of 0
+        try:
+            eye_per = eye_cycle[self.eye_cycle_num]
+            dilate_per = dilate_cycle[self.eye_cycle_num]
+        except IndexError:
+            eye_per = 0
+            dilate_per = 0
+
+        # Has the last cycle been reached? If so,
+        # signify the end and reset the cycle number
+        if self.eye_cycle_num >= len(eye_cycle)-1:
+            # The cycle has ended, set the flag and
+            # set the cycle index to 0
+            self.cycle_end = True
+            self.eye_cycle_num = 0
+
+            # Decrease the initial blink rate
+            self.total_blink_time = max(self.total_blink_time-0.25, self.total_blink_time_i)
+
+            # Calculate how many frames we want to blink for. Assuming
+            # the EMA is correct, this will be the time to
+            # blink divided by the expected value of generation
+            self.num_frames = (blink_time//self.EMA)+1
+
+            # Get the number of frams to reach the midpoint
+            self.midpoint = max(1, round(math.ceil(self.num_frames/2)))
+
+        # If not, update the eye cycle num
+        else:
+            self.eye_cycle_num += 1
+
+        # Update the pose
         self.pose[12] = eye_per
         self.pose[13] = eye_per
-
-        # Update the vector to dilate the eyes
         self.pose[24] = dilate_per
         self.pose[25] = dilate_per
 
@@ -225,8 +298,8 @@ class Talking_Head():
 
 def main():
     # Create the object
-    obj = Talking_Head("cuda:0", "Talking_Head/data/illust/img.png")
-    
+    obj = Talking_Head("cuda:0", 0.60, "Talking_Head/data/illust/img.png")
+
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
 
@@ -235,15 +308,16 @@ def main():
 
     def update_image(i):
         # Update the vector
-        obj.Move_mouth(i)
+        obj.Move_eyes()
         
         # Change the pose
         img = obj.change_pose()
         im.set_array(img)
 
         # Wait a little to blink again
-        if i%len(obj.eye_percent) == len(obj.eye_percent)-1:
-            time.sleep(5)
+        if obj.cycle_end:
+            plt.pause(np.clip(np.random.normal(5, 1, size=1)[0], 2, 7))
+            obj.cycle_end = False
 
     ani = animation.FuncAnimation(fig, update_image, interval=0)
     plt.show()
