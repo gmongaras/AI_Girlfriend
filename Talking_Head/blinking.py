@@ -1,14 +1,9 @@
-import cv2
 import numpy as np
 from PIL import Image
 from rembg import remove
 import PIL.Image
-import io
-from io import StringIO, BytesIO
-import IPython.display
 import numpy
-import ipywidgets
-from tha2.util import extract_PIL_image_from_filelike, resize_PIL_image, extract_pytorch_image_from_PIL_image, convert_output_image_from_torch_to_numpy
+from tha2.util import extract_pytorch_image_from_PIL_image, convert_output_image_from_torch_to_numpy
 import tha2.poser.modes.mode_20
 import time
 import threading
@@ -17,9 +12,8 @@ import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-from IPython import display
-from time import sleep
 from matplotlib import animation
+import random
 
 
 device = torch.device("cuda:0") if torch.has_cuda else torch.device("cpu")
@@ -93,8 +87,6 @@ def load_img(path):
     
     return torch_input_image, numpy_bg
 
-import random
-
 
 def main():
     # Load in the image
@@ -143,4 +135,64 @@ def main():
 
 
 
-main()
+
+
+# Posing vector info
+# It looks like /pose keeps the pose of the image in a 42-dim vector
+# in the following way:
+#   eyebrow:
+#      0: troubled left %
+#      1: troubled right %
+#      2: angry left %
+#      3: angry right %
+#      4: lowered left %
+#      5: lowered right %
+#      6: raised left %
+#      7: riased right %
+#      8: happy left %
+#      9: happy right %
+#     10: serious left %
+#     11: serious right %
+#   eye:
+#     12: wink right %
+#     13: wink left %
+#     14: happy wink right %
+#     15: happy wink left %
+#     16: surprised left %
+#     17: surprised right %
+#     18: relaxed left %
+#     19: relaxed right %
+#     20: unimpressed left %
+#     21: unimpressed right %
+#     22: raised_lower_eyelid left %
+#     23: raised_lower_eyelid right %
+#   iris shrinkage:
+#     24: left %
+#     25: right %
+#   mouth:
+#     26: aaa %
+#     27: iii %
+#     28: uuu %
+#     29: eee %
+#     30: ooo %
+#     31: delta %
+#     32: lowered_corner left %
+#     33: lowered_corner right %
+#     34: raised_corner left %
+#     35: raised_corner right %
+#     36: smirk %
+#   iris rotation:
+#     37: left % (between -1 and 1)
+#     38: right % (between -1 and 1)
+#   head rotation:
+#     39: x-axis % (between -1 and 1)
+#     40: y-axis % (between -1 and 1)
+#     41: z-axis % (between -1 and 1)
+
+
+
+
+
+
+if __name__ == "__main__":
+    main()
