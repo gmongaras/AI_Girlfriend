@@ -3,8 +3,12 @@ from typing import Dict, List
 
 from torch import Tensor
 
-from tha2.nn.batch_module.batch_input_module import BatchInputModule
-from tha2.compute.cached_computation_func import TensorCachedComputationFunc, TensorListCachedComputationFunc
+try:
+    from tha2.nn.batch_module.batch_input_module import BatchInputModule
+    from tha2.compute.cached_computation_func import TensorCachedComputationFunc, TensorListCachedComputationFunc
+except ModuleNotFoundError:
+    from ...tha2.nn.batch_module.batch_input_module import BatchInputModule
+    from ...tha2.compute.cached_computation_func import TensorCachedComputationFunc, TensorListCachedComputationFunc
 
 
 class CachedComputationProtocol(ABC):

@@ -3,12 +3,20 @@ from typing import List, Optional
 import torch
 from torch import Tensor
 
-from tha2.nn.backbone.poser_encoder_decoder_00 import PoserEncoderDecoder00Args, PoserEncoderDecoder00
-from tha2.nn.util import apply_color_change, apply_grid_change, apply_rgb_change
-from tha2.nn.batch_module.batch_input_module import BatchInputModule, BatchInputModuleFactory
-from tha2.nn.base.nonlinearity_factory import ReLUFactory
-from tha2.nn.base.normalization import InstanceNorm2dFactory
-from tha2.nn.base.util import BlockArgs
+try:
+    from tha2.nn.backbone.poser_encoder_decoder_00 import PoserEncoderDecoder00Args, PoserEncoderDecoder00
+    from tha2.nn.util import apply_color_change, apply_grid_change, apply_rgb_change
+    from tha2.nn.batch_module.batch_input_module import BatchInputModule, BatchInputModuleFactory
+    from tha2.nn.base.nonlinearity_factory import ReLUFactory
+    from tha2.nn.base.normalization import InstanceNorm2dFactory
+    from tha2.nn.base.util import BlockArgs
+except ModuleNotFoundError:
+    from ....tha2.nn.backbone.poser_encoder_decoder_00 import PoserEncoderDecoder00Args, PoserEncoderDecoder00
+    from ....tha2.nn.util import apply_color_change, apply_grid_change, apply_rgb_change
+    from ....tha2.nn.batch_module.batch_input_module import BatchInputModule, BatchInputModuleFactory
+    from ....tha2.nn.base.nonlinearity_factory import ReLUFactory
+    from ....tha2.nn.base.normalization import InstanceNorm2dFactory
+    from ....tha2.nn.base.util import BlockArgs
 
 
 class EyebrowMorphingCombiner00Args(PoserEncoderDecoder00Args):

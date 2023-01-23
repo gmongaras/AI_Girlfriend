@@ -5,22 +5,40 @@ from typing import List, Dict, Optional
 import torch
 from torch import Tensor
 
-from tha2.compute.cached_computation_func import TensorListCachedComputationFunc
-from tha2.compute.cached_computation_protocol import CachedComputationProtocol
-from tha2.nn.backcomp.tha.combiner import CombinerFactory
-from tha2.nn.backcomp.tha.two_algo_face_rotator import TwoAlgoFaceRotatorFactory, TwoAlgoFaceRotator
-from tha2.nn.base.nonlinearity_factory import ReLUFactory
-from tha2.nn.base.normalization import InstanceNorm2dFactory
-from tha2.nn.base.util import BlockArgs
-from tha2.nn.batch_module.batch_input_module import BatchInputModule
-from tha2.nn.eyebrow.eyebrow_decomposer_00 import EyebrowDecomposer00, \
-    EyebrowDecomposer00Factory, EyebrowDecomposer00Args
-from tha2.nn.eyebrow.eyebrow_morphing_combiner_00 import \
-    EyebrowMorphingCombiner00Factory, EyebrowMorphingCombiner00Args, EyebrowMorphingCombiner00
-from tha2.nn.face.face_morpher_08 import FaceMorpher08Args, FaceMorpher08Factory
-from tha2.poser.general_poser_02 import GeneralPoser02
-from tha2.poser.poser import Poser, PoseParameterCategory, PoseParameters
-from tha2.util import torch_load
+try:
+    from tha2.compute.cached_computation_func import TensorListCachedComputationFunc
+    from tha2.compute.cached_computation_protocol import CachedComputationProtocol
+    from tha2.nn.backcomp.tha.combiner import CombinerFactory
+    from tha2.nn.backcomp.tha.two_algo_face_rotator import TwoAlgoFaceRotatorFactory, TwoAlgoFaceRotator
+    from tha2.nn.base.nonlinearity_factory import ReLUFactory
+    from tha2.nn.base.normalization import InstanceNorm2dFactory
+    from tha2.nn.base.util import BlockArgs
+    from tha2.nn.batch_module.batch_input_module import BatchInputModule
+    from tha2.nn.eyebrow.eyebrow_decomposer_00 import EyebrowDecomposer00, \
+        EyebrowDecomposer00Factory, EyebrowDecomposer00Args
+    from tha2.nn.eyebrow.eyebrow_morphing_combiner_00 import \
+        EyebrowMorphingCombiner00Factory, EyebrowMorphingCombiner00Args, EyebrowMorphingCombiner00
+    from tha2.nn.face.face_morpher_08 import FaceMorpher08Args, FaceMorpher08Factory
+    from tha2.poser.general_poser_02 import GeneralPoser02
+    from tha2.poser.poser import Poser, PoseParameterCategory, PoseParameters
+    from tha2.util import torch_load
+except ModuleNotFoundError:
+    from ....tha2.compute.cached_computation_func import TensorListCachedComputationFunc
+    from ....tha2.compute.cached_computation_protocol import CachedComputationProtocol
+    from ....tha2.nn.backcomp.tha.combiner import CombinerFactory
+    from ....tha2.nn.backcomp.tha.two_algo_face_rotator import TwoAlgoFaceRotatorFactory, TwoAlgoFaceRotator
+    from ....tha2.nn.base.nonlinearity_factory import ReLUFactory
+    from ....tha2.nn.base.normalization import InstanceNorm2dFactory
+    from ....tha2.nn.base.util import BlockArgs
+    from ....tha2.nn.batch_module.batch_input_module import BatchInputModule
+    from ....tha2.nn.eyebrow.eyebrow_decomposer_00 import EyebrowDecomposer00, \
+        EyebrowDecomposer00Factory, EyebrowDecomposer00Args
+    from ....tha2.nn.eyebrow.eyebrow_morphing_combiner_00 import \
+        EyebrowMorphingCombiner00Factory, EyebrowMorphingCombiner00Args, EyebrowMorphingCombiner00
+    from ....tha2.nn.face.face_morpher_08 import FaceMorpher08Args, FaceMorpher08Factory
+    from ....tha2.poser.general_poser_02 import GeneralPoser02
+    from ....tha2.poser.poser import Poser, PoseParameterCategory, PoseParameters
+    from ....tha2.util import torch_load
 
 KEY_EYEBROW_DECOMPOSER = "eyebrow_decomposer"
 KEY_EYEBROW_MORPHING_COMBINER = "eyebrow_combiner"
@@ -245,7 +263,7 @@ def create_poser(
         module_file_names: Optional[Dict[str, str]] = None,
         eyebrow_morphed_image_index: int = EyebrowMorphingCombiner00.EYEBROW_IMAGE_NO_COMBINE_ALPHA_INDEX,
         default_output_index: int = 0) -> Poser:
-    dir = "data"
+    dir = "Talking_Head/data"
     if module_file_names is None:
         module_file_names = {}
     if KEY_EYEBROW_DECOMPOSER not in module_file_names:

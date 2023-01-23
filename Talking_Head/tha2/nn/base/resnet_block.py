@@ -3,11 +3,18 @@ from typing import Optional
 import torch
 from torch.nn import Module, Sequential, Parameter
 
-from tha2.nn.base.conv import create_conv1, create_conv3
-from tha2.nn.base.module_factory import ModuleFactory
-from tha2.nn.base.nonlinearity_factory import resolve_nonlinearity_factory
-from tha2.nn.base.normalization import NormalizationLayerFactory
-from tha2.nn.base.util import BlockArgs
+try:
+    from tha2.nn.base.conv import create_conv1, create_conv3
+    from tha2.nn.base.module_factory import ModuleFactory
+    from tha2.nn.base.nonlinearity_factory import resolve_nonlinearity_factory
+    from tha2.nn.base.normalization import NormalizationLayerFactory
+    from tha2.nn.base.util import BlockArgs
+except ModuleNotFoundError:
+    from ....tha2.nn.base.conv import create_conv1, create_conv3
+    from ....tha2.nn.base.module_factory import ModuleFactory
+    from ....tha2.nn.base.nonlinearity_factory import resolve_nonlinearity_factory
+    from ....tha2.nn.base.normalization import NormalizationLayerFactory
+    from ....tha2.nn.base.util import BlockArgs
 
 
 class ResnetBlock(Module):

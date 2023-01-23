@@ -2,10 +2,16 @@ from typing import Optional
 
 from torch.nn import Sigmoid, Sequential, Tanh
 
-from tha2.nn.base.conv import create_conv3, create_conv3_from_block_args
-from tha2.nn.base.nonlinearity_factory import ReLUFactory
-from tha2.nn.base.normalization import InstanceNorm2dFactory
-from tha2.nn.base.util import BlockArgs
+try:
+    from tha2.nn.base.conv import create_conv3, create_conv3_from_block_args
+    from tha2.nn.base.nonlinearity_factory import ReLUFactory
+    from tha2.nn.base.normalization import InstanceNorm2dFactory
+    from tha2.nn.base.util import BlockArgs
+except ModuleNotFoundError:
+    from ....tha2.nn.base.conv import create_conv3, create_conv3_from_block_args
+    from ....tha2.nn.base.nonlinearity_factory import ReLUFactory
+    from ....tha2.nn.base.normalization import InstanceNorm2dFactory
+    from ....tha2.nn.base.util import BlockArgs
 
 
 class PoserArgs00:

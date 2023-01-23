@@ -1,7 +1,11 @@
 from torch.nn import Module, ModuleList
 
-from tha2.nn.backcomp.nn.conv import Conv7Block, DownsampleBlock, UpsampleBlock
-from tha2.nn.backcomp.nn.resnet_block import ResNetBlock
+try:
+    from tha2.nn.backcomp.nn.conv import Conv7Block, DownsampleBlock, UpsampleBlock
+    from tha2.nn.backcomp.nn.resnet_block import ResNetBlock
+except ModuleNotFoundError:
+    from .....tha2.nn.backcomp.nn.conv import Conv7Block, DownsampleBlock, UpsampleBlock
+    from .....tha2.nn.backcomp.nn.resnet_block import ResNetBlock
 
 
 class EncoderDecoderModule(Module):

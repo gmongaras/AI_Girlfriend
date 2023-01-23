@@ -90,7 +90,7 @@ def load_img(path):
 
 def main():
     # Load in the image
-    torch_input_image, numpy_bg = load_img("data/illust/img2.png")
+    torch_input_image, numpy_bg = load_img("data/illust/waifu_00.png")
 
     # Posing vector
     pose = torch.zeros((42)).to(device)

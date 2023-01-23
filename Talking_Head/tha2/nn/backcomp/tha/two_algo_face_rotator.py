@@ -3,9 +3,14 @@ from torch import Tensor
 from torch.nn import Sequential, Tanh, Sigmoid
 from torch.nn.functional import affine_grid, grid_sample
 
-from tha2.nn.backcomp.nn.conv import Conv7
-from tha2.nn.backcomp.nn.encoder_decoder_module import EncoderDecoderModule
-from tha2.nn.batch_module.batch_input_module import BatchInputModule, BatchInputModuleFactory
+try:
+    from tha2.nn.backcomp.nn.conv import Conv7
+    from tha2.nn.backcomp.nn.encoder_decoder_module import EncoderDecoderModule
+    from tha2.nn.batch_module.batch_input_module import BatchInputModule, BatchInputModuleFactory
+except ModuleNotFoundError:
+    from .....tha2.nn.backcomp.nn.conv import Conv7
+    from .....tha2.nn.backcomp.nn.encoder_decoder_module import EncoderDecoderModule
+    from .....tha2.nn.batch_module.batch_input_module import BatchInputModule, BatchInputModuleFactory
 
 
 class TwoAlgoFaceRotator(BatchInputModule):

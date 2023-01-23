@@ -6,14 +6,24 @@ from torch import Tensor
 from torch.nn import ModuleList, Sequential, Sigmoid, Tanh
 from torch.nn.functional import affine_grid, grid_sample
 
-from tha2.nn.batch_module.batch_input_module import BatchInputModule, BatchInputModuleFactory
-from tha2.nn.base.conv import create_conv3_block_from_block_args, \
-    create_downsample_block_from_block_args, create_upsample_block_from_block_args, create_conv3_from_block_args, \
-    create_conv3
-from tha2.nn.base.nonlinearity_factory import LeakyReLUFactory
-from tha2.nn.base.normalization import InstanceNorm2dFactory
-from tha2.nn.base.resnet_block import ResnetBlock
-from tha2.nn.base.util import BlockArgs
+try:
+    from tha2.nn.batch_module.batch_input_module import BatchInputModule, BatchInputModuleFactory
+    from tha2.nn.base.conv import create_conv3_block_from_block_args, \
+        create_downsample_block_from_block_args, create_upsample_block_from_block_args, create_conv3_from_block_args, \
+        create_conv3
+    from tha2.nn.base.nonlinearity_factory import LeakyReLUFactory
+    from tha2.nn.base.normalization import InstanceNorm2dFactory
+    from tha2.nn.base.resnet_block import ResnetBlock
+    from tha2.nn.base.util import BlockArgs
+except ModuleNotFoundError:
+    from ....tha2.nn.batch_module.batch_input_module import BatchInputModule, BatchInputModuleFactory
+    from ....tha2.nn.base.conv import create_conv3_block_from_block_args, \
+        create_downsample_block_from_block_args, create_upsample_block_from_block_args, create_conv3_from_block_args, \
+        create_conv3
+    from ....tha2.nn.base.nonlinearity_factory import LeakyReLUFactory
+    from ....tha2.nn.base.normalization import InstanceNorm2dFactory
+    from ....tha2.nn.base.resnet_block import ResnetBlock
+    from ....tha2.nn.base.util import BlockArgs
 
 
 class FaceMorpher08Args:

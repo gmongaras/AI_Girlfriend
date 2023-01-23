@@ -4,7 +4,10 @@ from typing import List
 from torch import Tensor
 from torch.nn import Module
 
-from tha2.nn.base.module_factory import ModuleFactory
+try:
+    from tha2.nn.base.module_factory import ModuleFactory
+except ModuleNotFoundError:
+    from ....tha2.nn.base.module_factory import ModuleFactory
 
 
 class BatchInputModule(Module, ABC):

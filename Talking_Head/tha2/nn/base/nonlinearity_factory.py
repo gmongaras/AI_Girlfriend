@@ -2,7 +2,10 @@ from typing import Optional
 
 from torch.nn import Module, ReLU, LeakyReLU, ELU
 
-from tha2.nn.base.module_factory import ModuleFactory
+try:
+    from tha2.nn.base.module_factory import ModuleFactory
+except ModuleNotFoundError:
+    from ....tha2.nn.base.module_factory import ModuleFactory
 
 
 class ReLUFactory(ModuleFactory):

@@ -25,7 +25,7 @@ from string import punctuation
 from keybert import KeyBERT
 import asyncio
 import json
-import Talking_Head.blinking as Talking_Head
+from Talking_Head.Talking_Head import Talking_Head
 
 
 
@@ -230,6 +230,16 @@ class WaifuObj:
             mixer.music.unload()
         except:
             pass
+
+
+
+        
+        # Initialize the Talking Head class to add movement to images
+        self.talkingHead = Talking_Head(torch.device("cuda:0"))
+
+        # Blinking loop for the pose vector
+        eye_percent = [0.25, 0.5, 0.75, 1, 0.75, 0.5, 0.25, 0, 0, 0]
+        dilate_percent = [0, 0.2, 0.4, 0.8, 0.4, 0.2, 0, 0, 0, 0]
 
 
 

@@ -5,13 +5,22 @@ import torch
 from torch import Tensor
 from torch.nn import ModuleList, Module
 
-from tha2.nn.backbone.poser_args import PoserArgs00
-from tha2.nn.base.conv import create_conv3_block_from_block_args, create_downsample_block_from_block_args, \
-    create_upsample_block_from_block_args
-from tha2.nn.base.nonlinearity_factory import ReLUFactory
-from tha2.nn.base.normalization import InstanceNorm2dFactory
-from tha2.nn.base.resnet_block import ResnetBlock
-from tha2.nn.base.util import BlockArgs
+try:
+    from tha2.nn.backbone.poser_args import PoserArgs00
+    from tha2.nn.base.conv import create_conv3_block_from_block_args, create_downsample_block_from_block_args, \
+        create_upsample_block_from_block_args
+    from tha2.nn.base.nonlinearity_factory import ReLUFactory
+    from tha2.nn.base.normalization import InstanceNorm2dFactory
+    from tha2.nn.base.resnet_block import ResnetBlock
+    from tha2.nn.base.util import BlockArgs
+except ModuleNotFoundError:
+    from ....tha2.nn.backbone.poser_args import PoserArgs00
+    from ....tha2.nn.base.conv import create_conv3_block_from_block_args, create_downsample_block_from_block_args, \
+        create_upsample_block_from_block_args
+    from ....tha2.nn.base.nonlinearity_factory import ReLUFactory
+    from ....tha2.nn.base.normalization import InstanceNorm2dFactory
+    from ....tha2.nn.base.resnet_block import ResnetBlock
+    from ....tha2.nn.base.util import BlockArgs
 
 
 class PoserEncoderDecoder00Args(PoserArgs00):

@@ -3,8 +3,8 @@ from PIL import Image
 from rembg import remove
 import PIL.Image
 import numpy
-from tha2.util import extract_pytorch_image_from_PIL_image, convert_output_image_from_torch_to_numpy
-import tha2.poser.modes.mode_20
+from .tha2.util import extract_pytorch_image_from_PIL_image, convert_output_image_from_torch_to_numpy
+from .tha2.poser.modes import mode_20
 import time
 import torch
 import numpy as np
@@ -16,6 +16,59 @@ import random
 
 
 
+# Posing vector info
+# It looks like /pose keeps the pose of the image in a 42-dim vector
+# in the following way:
+#   eyebrow:
+#      0: troubled left %
+#      1: troubled right %
+#      2: angry left %
+#      3: angry right %
+#      4: lowered left %
+#      5: lowered right %
+#      6: raised left %
+#      7: riased right %
+#      8: happy left %
+#      9: happy right %
+#     10: serious left %
+#     11: serious right %
+#   eye:
+#     12: wink right %
+#     13: wink left %
+#     14: happy wink right %
+#     15: happy wink left %
+#     16: surprised left %
+#     17: surprised right %
+#     18: relaxed left %
+#     19: relaxed right %
+#     20: unimpressed left %
+#     21: unimpressed right %
+#     22: raised_lower_eyelid left %
+#     23: raised_lower_eyelid right %
+#   iris shrinkage:
+#     24: left %
+#     25: right %
+#   mouth:
+#     26: aaa %
+#     27: iii %
+#     28: uuu %
+#     29: eee %
+#     30: ooo %
+#     31: delta %
+#     32: lowered_corner left %
+#     33: lowered_corner right %
+#     34: raised_corner left %
+#     35: raised_corner right %
+#     36: smirk %
+#   iris rotation:
+#     37: left % (between -1 and 1)
+#     38: right % (between -1 and 1)
+#   head rotation:
+#     39: x-axis % (between -1 and 1)
+#     40: y-axis % (between -1 and 1)
+#     41: z-axis % (between -1 and 1)
+
+
 
 
 class Talking_Head():
@@ -25,13 +78,23 @@ class Talking_Head():
         self.device = device
 
         # Load in the model
-        self.poser = tha2.poser.modes.mode_20.create_poser(device)
-        self.pose_parameters = tha2.poser.modes.mode_20.get_pose_parameters()
+        self.poser = mode_20.create_poser(device)
+        self.pose_parameters = mode_20.get_pose_parameters()
         self.pose_size = self.poser.get_num_parameters()
 
         # Load the new image in if any
         if img_path is not None:
             self.load_new_image(img_path)
+
+        # Current position vector itinialized as zeros
+        self.pose = torch.zeros((42)).to(self.device)
+
+        # The configuration cycle for blinking
+        self.eye_percent = [0.25, 0.5, 0.75, 1, 0.75, 0.5, 0.25, 0, 0, 0]
+        self.dilate_percent = [0, 0.2, 0.4, 0.8, 0.4, 0.2, 0, 0, 0, 0]
+
+        # configuration cycle for talking
+        self.talking_percent = [0, 0.2, 0.4, 0.8, 0.4, 0.2, 0, 0, 0, 0]
 
 
 
@@ -107,64 +170,87 @@ class Talking_Head():
         return pil_image
     
 
-    # Change the pose of the stored image given the
-    # pose to change to
-    def change_pose(self, pose):
-        # Now let's try to get the output image with no posing
-        output_image = self.poser.pose(self.torch_input_image, pose)[0]
+    # Change the pose of the stored image using the
+    # stored vector state
+    def change_pose(self):
+        # Pose the image
+        output_image = self.poser.pose(self.torch_input_image, self.pose)[0]
         
         # Get the image
         return self.get_pytorch_image(output_image, numpy_bg=self.numpy_bg)
 
 
 
+    # Given a position value, return the updated vector
+    # for the new face with the eyes moved to the next position
+    # pos - Current movement position. Cen be cumulative
+    #       or in the range of possible values
+    def Move_eyes(self, pos):
+        # Get the new position
+        eye_per = self.eye_percent[pos%len(self.eye_percent)]
+        dilate_per = self.dilate_percent[pos%len(self.dilate_percent)]
 
+        # Update the vector to make the image blink
+        self.pose[12] = eye_per
+        self.pose[13] = eye_per
 
-def main():
-    # Create the object
-    obj = Talking_Head("cuda:0", "data/illust/img2.png")
+        # Update the vector to dilate the eyes
+        self.pose[24] = dilate_per
+        self.pose[25] = dilate_per
 
-    # Posing vector
-    pose = torch.zeros((42)).to(obj.device)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-
-    img = obj.change_pose(pose)
-    im = ax.imshow(img, animated=True)
-
-    eye_percent = [0.25, 0.5, 0.75, 1, 0.75, 0.5, 0.25, 0, 0, 0]
-    dilate_percent = [0, 0.2, 0.4, 0.8, 0.4, 0.2, 0, 0, 0, 0]
-
-    def update_image(i):
-        # Get the percentages
-        eye_per = eye_percent[i%len(eye_percent)]
-        dilate_per = dilate_percent[i%len(dilate_percent)]
-
-        # Make the eyes close
-        pose[12] = eye_per
-        pose[13] = eye_per
-
-        # Make the eyes dilate
-        pose[24] = dilate_per
-        pose[25] = dilate_per
-        
         # for item in range(0, len(pose)):
         #     pose[item] = random.random()
         # for item in range(37, 42):
         #     pose[item] = (random.random()*2)-1
+
+        # Return the new vector
+        return self.pose
+    
+
+    # Given a position value, return the updated vector
+    # for the new face with the mouth moved to the next position
+    # pos - Current movement position. Cen be cumulative
+    #       or in the range of possible values
+    def Move_mouth(self, pos):
+        # Get the new position
+        talking_per = self.talking_percent[pos%len(self.talking_percent)]
+
+        # Update the vector to make the image mover its mouth
+        self.pose[26] = talking_per
+
+        # Return the new vector
+        return self.pose
+
+
+
+def main():
+    # Create the object
+    obj = Talking_Head("cuda:0", "Talking_Head/data/illust/img.png")
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+
+    img = obj.change_pose()
+    im = ax.imshow(img, animated=True)
+
+    def update_image(i):
+        # Update the vector
+        obj.Move_mouth(i)
         
         # Change the pose
-        img = obj.change_pose(pose)
+        img = obj.change_pose()
         im.set_array(img)
 
         # Wait a little to blink again
-        if i%len(eye_percent) == len(eye_percent)-1:
+        if i%len(obj.eye_percent) == len(obj.eye_percent)-1:
             time.sleep(5)
 
     ani = animation.FuncAnimation(fig, update_image, interval=0)
     plt.show()
 
 
+
+
 if __name__=="__main__":
+    # Move_eyes()
     main()

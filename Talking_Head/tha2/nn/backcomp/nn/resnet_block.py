@@ -1,7 +1,10 @@
 from torch import relu
 from torch.nn import Module, InstanceNorm2d
 
-from tha2.nn.backcomp.nn.conv import Conv3
+try:
+    from tha2.nn.backcomp.nn.conv import Conv3
+except ModuleNotFoundError:
+    from .....tha2.nn.backcomp.nn.conv import Conv3
 
 
 class ResNetBlock(Module):

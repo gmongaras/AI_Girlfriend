@@ -5,7 +5,10 @@ import torch
 from torch.nn import Module, BatchNorm2d, InstanceNorm2d, Parameter
 from torch.nn.init import normal_, constant_
 
-from tha2.nn.base.pass_through import PassThrough
+try:
+    from tha2.nn.base.pass_through import PassThrough
+except ModuleNotFoundError:
+    from ....tha2.nn.base.pass_through import PassThrough
 
 
 class PixelNormalization(Module):

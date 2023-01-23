@@ -2,10 +2,16 @@ from typing import Optional
 
 from torch.nn import Conv2d, Module, Sequential, ConvTranspose2d
 
-from tha2.nn.base.module_factory import ModuleFactory
-from tha2.nn.base.nonlinearity_factory import resolve_nonlinearity_factory
-from tha2.nn.base.normalization import NormalizationLayerFactory
-from tha2.nn.base.util import wrap_conv_or_linear_module, BlockArgs
+try:
+    from tha2.nn.base.module_factory import ModuleFactory
+    from tha2.nn.base.nonlinearity_factory import resolve_nonlinearity_factory
+    from tha2.nn.base.normalization import NormalizationLayerFactory
+    from tha2.nn.base.util import wrap_conv_or_linear_module, BlockArgs
+except ModuleNotFoundError:
+    from ....tha2.nn.base.module_factory import ModuleFactory
+    from ....tha2.nn.base.nonlinearity_factory import resolve_nonlinearity_factory
+    from ....tha2.nn.base.normalization import NormalizationLayerFactory
+    from ....tha2.nn.base.util import wrap_conv_or_linear_module, BlockArgs
 
 
 def create_conv7(in_channels: int, out_channels: int,

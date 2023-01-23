@@ -3,9 +3,14 @@ from typing import List, Optional, Tuple, Dict, Callable
 import torch
 from torch import Tensor
 
-from tha2.poser.poser import PoseParameterGroup, Poser
-from tha2.nn.batch_module.batch_input_module import BatchInputModule
-from tha2.compute.cached_computation_func import TensorListCachedComputationFunc
+try:
+    from tha2.poser.poser import PoseParameterGroup, Poser
+    from tha2.nn.batch_module.batch_input_module import BatchInputModule
+    from tha2.compute.cached_computation_func import TensorListCachedComputationFunc
+except ModuleNotFoundError:
+    from ...tha2.poser.poser import PoseParameterGroup, Poser
+    from ...tha2.nn.batch_module.batch_input_module import BatchInputModule
+    from ...tha2.compute.cached_computation_func import TensorListCachedComputationFunc
 
 
 class GeneralPoser02(Poser):
