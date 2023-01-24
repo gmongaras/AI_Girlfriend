@@ -10,7 +10,8 @@
             "request": "launch",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "module": "Talking_Head.Talking_Head"
+            // "module": "Talking_Head.Talking_Head"
+            "module": "putting_it_together"
         }
     ]
 }

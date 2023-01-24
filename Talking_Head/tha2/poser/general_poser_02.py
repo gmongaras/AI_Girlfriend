@@ -43,8 +43,11 @@ class GeneralPoser02(Poser):
             for key in self.module_loaders:
                 module = self.module_loaders[key]()
                 self.modules[key] = module
-                module.to(self.device)
-                module.train(False)
+                try:
+                    module.to(self.device)
+                    module.train(False)
+                except AttributeError:
+                    pass
         return self.modules
 
     def get_pose_parameter_groups(self) -> List[PoseParameterGroup]:

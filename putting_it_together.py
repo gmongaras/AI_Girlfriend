@@ -26,6 +26,7 @@ from keybert import KeyBERT
 import asyncio
 import json
 from Talking_Head.Talking_Head import Talking_Head
+import multiprocess
 
 
 
@@ -233,13 +234,10 @@ class WaifuObj:
 
 
 
-        
-        # Initialize the Talking Head class to add movement to images
-        self.talkingHead = Talking_Head(torch.device("cuda:0"))
 
-        # Blinking loop for the pose vector
-        eye_percent = [0.25, 0.5, 0.75, 1, 0.75, 0.5, 0.25, 0, 0, 0]
-        dilate_percent = [0, 0.2, 0.4, 0.8, 0.4, 0.2, 0, 0, 0, 0]
+        # Dummary variable where the thread
+        # that animates the picture can be accessed from
+        self.anim_thread = None
 
 
 
@@ -575,6 +573,45 @@ class WaifuObj:
             myobj.save("tmp.mp3")
 
 
+# This function is used to thread the blinking animation
+# of the generated image
+def blink_loop(img, fig, ax):
+    from matplotlib import animation
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # Initialize the Talking Head class to add movement to images
+    img_anim = Talking_Head(torch.device("cuda:0"), 0.60)
+
+    # Load in the new image
+    img_anim.load_new_image(img=img)
+
+    # Default pose
+    img = img_anim.change_pose()
+    im = ax.imshow(img, animated=True)
+
+    # Update loop function
+    def update_image(i):
+        # Update the vector
+        img_anim.Move_eyes()
+        
+        # Change the pose
+        img = img_anim.change_pose()
+        im.set_array(img)
+
+        # Wait a little to blink again
+        if img_anim.cycle_end:
+            # Blink anywhere between 2 and 7 secods with
+            # a mean around 5 seconds (avg blink wait time)
+            t = np.clip(np.random.normal(5, 1, size=1)[0], 2, 7)
+
+            plt.pause(t)
+            img_anim.cycle_end = False
+
+    ani = animation.FuncAnimation(fig, update_image, interval=0)
+    plt.show()
+
+
 
 
 # Main loop that uses the object
@@ -686,14 +723,28 @@ def main(obj, custom_audio, custom_model, img_settings, img_characteristics, gui
             with obj.suppress_stdout():
                 with autocast("cuda"):
                     image = obj.imgGen(img_prompt, guidance_scale=guidance_scale)["images"][0]
-        
-            # Show the image
-            fig, ax = plt.subplots()
-            fig.subplots_adjust(0,0,1,1)
-            ax.set_axis_off()
-            ax.imshow(image)
-            plt.show()
-            del image
+            
+
+            # When the image is generated, we need to animate it. We
+            # will do so on another thread and kill the old
+            # one if it exists
+            if obj.anim_thread != None:
+                obj.anim_thread.terminate()
+            # Create the figure
+            fig = plt.figure()
+            ax = fig.add_subplot(1,1,1) 
+
+            obj.anim_thread = multiprocess.Process(target=blink_loop, args=(image, fig, ax))
+            obj.anim_thread.daemon = True
+            obj.anim_thread.start()
+
+            # # Show the image
+            # fig, ax = plt.subplots()
+            # fig.subplots_adjust(0,0,1,1)
+            # ax.set_axis_off()
+            # ax.imshow(image)
+            # plt.show()
+            # del image
 
 
 
@@ -725,12 +776,13 @@ if __name__=="__main__":
     custom_model_path = "Finetuning/outputs/r/"
 
     # Settings and characteristics for the output image
-    img_settings = "1girl, very wide shot, simple background, solo focus, female focus, looking at viewer, ratio:16:9, detailed"
+    # img_settings = "1girl, very wide shot, simple background, solo focus, female focus, looking at viewer, ratio:16:9, detailed"
+    img_settings = "1girl, very wide shot, solo focus, feamle focus, ratio:16:9, detailed, looking at viewer, facing viewer, facing forward, vtuber, pure black background, chest and head"
     img_characteristics = "waifu, female, brown hair, blue eyes, sidelocks, slight blush, fox ears"
     guidance_scale = 10.0
     
     # Setup the interface
-    memory_file = "config_file.json"
+    memory_file = None#"config_file.json"
     obj = WaifuObj(initial_summ, initial_prompt, False, audio_model_path, audio_data_path, custom_model_path, memory_file)
     # setup(False, audio_model_path, audio_data_path, custom_model_path)
     #test_audio(audio_model_path, audio_data_path)

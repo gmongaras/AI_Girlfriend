@@ -75,7 +75,10 @@ class FiveStepPoserComputationProtocol(CachedComputationProtocol):
             output = self.get_output(KEY_ALL_OUTPUT, modules, batch, outputs)
             if new_batch_0:
                 self.cached_batch_0 = batch[0]
-                self.cached_eyebrow_decomposer_output = outputs[KEY_EYEBROW_DECOMPOSER_OUTPUT]
+                try:
+                    self.cached_eyebrow_decomposer_output = outputs[KEY_EYEBROW_DECOMPOSER_OUTPUT]
+                except KeyError:
+                    self.cached_eyebrow_decomposer_output = None
             return output
 
         return func
@@ -96,11 +99,11 @@ class FiveStepPoserComputationProtocol(CachedComputationProtocol):
                 eyebrow_pose
             ])
         elif key == KEY_FACE_MORPHER_OUTPUT:
-            eyebrow_morphing_combiner_output = self.get_output(
-                KEY_EYEBROW_MORPHING_COMBINER_OUTPUT, modules, batch, outputs)
-            eyebrow_morphed_image = eyebrow_morphing_combiner_output[self.eyebrow_morphed_image_index]
+            # eyebrow_morphing_combiner_output = self.get_output(
+            #     KEY_EYEBROW_MORPHING_COMBINER_OUTPUT, modules, batch, outputs)
+            # eyebrow_morphed_image = eyebrow_morphing_combiner_output[self.eyebrow_morphed_image_index]
             input_image = batch[0][:, :, 32:32 + 192, 32:32 + 192].clone()
-            input_image[:, :, 32:32 + 128, 32:32 + 128] = eyebrow_morphed_image
+            # input_image[:, :, 32:32 + 128, 32:32 + 128] = eyebrow_morphed_image
             face_pose = batch[1][:, NUM_EYEBROW_PARAMS:NUM_EYEBROW_PARAMS + NUM_FACE_PARAMS]
             return modules[KEY_FACE_MORPHER].forward_from_batch([
                 input_image,
@@ -129,17 +132,26 @@ class FiveStepPoserComputationProtocol(CachedComputationProtocol):
                 rotation_pose
             ])
         elif key == KEY_ALL_OUTPUT:
+            """
+            Note: For moving the eyes and the
+            mouth, all that's needed is the
+            combiner, face morpher, and face roatator. 
+            To reduce memory, I am just using those
+            """
+
+
             combiner_output = self.get_output(KEY_COMBINER_OUTPUT, modules, batch, outputs)
             rotater_output = self.get_output(KEY_FACE_ROTATER_OUTPUT, modules, batch, outputs)
             face_morpher_output = self.get_output(KEY_FACE_MORPHER_OUTPUT, modules, batch, outputs)
-            eyebrow_morphing_combiner_output = self.get_output(
-                KEY_EYEBROW_MORPHING_COMBINER_OUTPUT, modules, batch, outputs)
-            eyebrow_decomposer_output = self.get_output(KEY_EYEBROW_DECOMPOSER_OUTPUT, modules, batch, outputs)
-            output = combiner_output \
-                     + rotater_output \
-                     + face_morpher_output \
-                     + eyebrow_morphing_combiner_output \
-                     + eyebrow_decomposer_output
+            # eyebrow_morphing_combiner_output = self.get_output(
+            #     KEY_EYEBROW_MORPHING_COMBINER_OUTPUT, modules, batch, outputs)
+            # eyebrow_decomposer_output = self.get_output(KEY_EYEBROW_DECOMPOSER_OUTPUT, modules, batch, outputs)
+            # output = combiner_output \
+            #          + rotater_output \
+            #          + face_morpher_output \
+            #          + eyebrow_morphing_combiner_output \
+            #          + eyebrow_decomposer_output
+            output = combiner_output + face_morpher_output
             return output
         else:
             raise RuntimeError("Unsupported key: " + key)
@@ -282,11 +294,35 @@ def create_poser(
         file_name = dir + "/combiner.pt"
         module_file_names[KEY_COMBINER] = file_name
 
+    # loaders = {
+    #     KEY_EYEBROW_DECOMPOSER:
+    #         lambda: load_eyebrow_decomposer(module_file_names[KEY_EYEBROW_DECOMPOSER]),
+    #     KEY_EYEBROW_MORPHING_COMBINER:
+    #         lambda: load_eyebrow_morphing_combiner(module_file_names[KEY_EYEBROW_MORPHING_COMBINER]),
+    #     KEY_FACE_MORPHER:
+    #         lambda: load_face_morpher(module_file_names[KEY_FACE_MORPHER]),
+    #     KEY_FACE_ROTATER:
+    #         lambda: load_face_rotater(module_file_names[KEY_FACE_ROTATER]),
+    #     KEY_COMBINER:
+    #         lambda: load_combiner(module_file_names[KEY_COMBINER]),
+    # }
+
+
+    """
+    Note: For moving the eyes and the
+    mouth, all that's needed is the
+    combiner, face morpher, and face roatator. 
+    To reduce memory, I am just using those
+    """
+    
+    def f():
+        pass
+
     loaders = {
         KEY_EYEBROW_DECOMPOSER:
-            lambda: load_eyebrow_decomposer(module_file_names[KEY_EYEBROW_DECOMPOSER]),
+            lambda: f(),
         KEY_EYEBROW_MORPHING_COMBINER:
-            lambda: load_eyebrow_morphing_combiner(module_file_names[KEY_EYEBROW_MORPHING_COMBINER]),
+            lambda: f(),
         KEY_FACE_MORPHER:
             lambda: load_face_morpher(module_file_names[KEY_FACE_MORPHER]),
         KEY_FACE_ROTATER:
@@ -294,6 +330,9 @@ def create_poser(
         KEY_COMBINER:
             lambda: load_combiner(module_file_names[KEY_COMBINER]),
     }
+    
+
+
     return GeneralPoser02(
         module_loaders=loaders,
         pose_parameters=get_pose_parameters().get_pose_parameter_groups(),

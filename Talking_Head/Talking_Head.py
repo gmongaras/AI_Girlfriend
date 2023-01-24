@@ -9,7 +9,10 @@ import time
 import torch
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')
+try:
+    matplotlib.use('TkAgg')
+except ImportError:
+    pass
 import matplotlib.pyplot as plt
 from matplotlib import animation
 import random
@@ -76,17 +79,16 @@ class Talking_Head():
     # device - Device to put the model on
     # blink_time - (optional) Time for each blink cycle
     # img_path - (Optional) Path to the image to load
-    def __init__(self, device, blink_time=0.5, img_path=None):
+    # img - (Optional) PIL image to load in
+    def __init__(self, device, blink_time=0.5, img_path=None, img=None):
         self.device = device
 
         # Load in the model
         self.poser = mode_20.create_poser(device)
-        self.pose_parameters = mode_20.get_pose_parameters()
-        self.pose_size = self.poser.get_num_parameters()
 
         # Load the new image in if any
-        if img_path is not None:
-            self.load_new_image(img_path)
+        if img_path is not None or img is not None:
+            self.load_new_image(path=img_path, img=img)
 
         # Current position vector itinialized as zeros
         self.pose = torch.zeros((42)).to(self.device)
@@ -122,18 +124,24 @@ class Talking_Head():
 
 
 
-    # Load a new image for moving around
-    def load_new_image(self, img_path):
+    # Load a new image for moving around given
+    # an image path or the image itself
+    def load_new_image(self, path=None, img=None):
         # Load in the image and save the resulting tensor
         # and numpy array
-        self.torch_input_image, self.numpy_bg = self.load_img(img_path)
+        self.torch_input_image, self.numpy_bg = self.load_img(path, img)
 
 
 
     # Load in a new image given the path to that image
-    def load_img(self, path):
+    # or given the image itself as a PIL object
+    def load_img(self, path=None, img=None):
+        assert path is not None or img is not None, \
+            "Either the path or image must be provided"
+
         # Load in the image
-        img = Image.open(path).convert("RGB")
+        if path is not None:
+            img = Image.open(path).convert("RGB")
         
         # Image must be 256x256
         img = img.resize((256, 256))
@@ -270,6 +278,7 @@ class Talking_Head():
         self.pose[13] = eye_per
         self.pose[24] = dilate_per
         self.pose[25] = dilate_per
+        self.pose[26] = eye_per
 
         # for item in range(0, len(pose)):
         #     pose[item] = random.random()
@@ -298,7 +307,7 @@ class Talking_Head():
 
 def main():
     # Create the object
-    obj = Talking_Head("cuda:0", 0.60, "Talking_Head/data/illust/img.png")
+    obj = Talking_Head("cuda:0", 0.66, "Talking_Head/data/illust/img.png")
 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -316,7 +325,11 @@ def main():
 
         # Wait a little to blink again
         if obj.cycle_end:
-            plt.pause(np.clip(np.random.normal(5, 1, size=1)[0], 2, 7))
+            # Blink anywhere between 2 and 7 secods with
+            # a mean around 5 seconds (avg blink wait time)
+            t = np.clip(np.random.normal(5, 1, size=1)[0], 2, 7)
+
+            plt.pause(t)
             obj.cycle_end = False
 
     ani = animation.FuncAnimation(fig, update_image, interval=0)
