@@ -80,8 +80,12 @@ class Talking_Head():
     # blink_time - (optional) Time for each blink cycle
     # img_path - (Optional) Path to the image to load
     # img - (Optional) PIL image to load in
-    def __init__(self, device, blink_time=0.5, img_path=None, img=None):
+    # automatic_EMA - (Optiona) True to automatically collect
+    #                 the EMA of the image generation, False to
+    #                 manually update the EMA.
+    def __init__(self, device, blink_time=0.66, img_path=None, img=None, automatic_EMA=True):
         self.device = device
+        self.automatic_EMA = automatic_EMA
 
         # Load in the model
         self.poser = mode_20.create_poser(device)
@@ -113,8 +117,8 @@ class Talking_Head():
 
         # EMA giving the expected value of the new image generation.
         # This statistic will be used as a correcting factor
-        self.EMA_rate = 0.1
-        self.EMA = 0
+        self.EMA_rate = 0.4
+        self.EMA = 0.2
 
 
     # Used to update the EMA
@@ -149,21 +153,11 @@ class Talking_Head():
         # Remove the background from the image and save the background
         # for later use
         img, bg = self.remove_bg(img)
-
-        # Save the numpy background so that it can
-        # be reapplied when showing the image
-        # Note: alpha values with 0 and 100% transparent and alpha values at 255
-        # are 100 not transparent. So instead of keeping the trash artifacts
-        # that may mess up the original image when adding this mask to it, we
-        # can just remove anything we don't want. Since the BG is found really well,
-        # this method mostly works and has a slight issue around the border, but
-        # it's better than having annoying artifacts.
-        numpy_bg = Image.fromarray(numpy.where(bg.transpose(2, 0, 1)[-1] > 10, bg.transpose(2, 0, 1), 0).transpose(1, 2, 0))
         
         # Make the image a torch tensor
         torch_input_image = extract_pytorch_image_from_PIL_image(img).to(self.device)
         
-        return torch_input_image, numpy_bg
+        return torch_input_image, bg.astype(np.int16)
 
 
 
@@ -179,7 +173,7 @@ class Talking_Head():
         global img2
         img2 = img
         fg = remove(img)
-        bg = np.array(img.convert("RGBA"))-np.array(fg)
+        bg = np.array(img)-np.array(fg.convert("RGB"))
         return fg, bg
 
 
@@ -190,14 +184,19 @@ class Talking_Head():
     # numpy_bg - (Optional) numpy array with the original background
     #                       of the original image
     def get_pytorch_image(self, pytorch_image, numpy_bg=None):
+        # Get the output image as an RGB numpy array
         output_image = pytorch_image.detach().cpu()
         numpy_image = numpy.uint8(numpy.rint(convert_output_image_from_torch_to_numpy(output_image) * 255.0))
-        
-        # If the background exists, reapply it so the image isn't so plain
+        numpy_image = numpy_image[:, :, :-1]
+
+        # If the background exists, reapply it so the image isn't so plain.
+        # Also note that sometimes an off by 1 wrap around happens and
+        # corrupts the image so the images needs to be converted to a
+        # int16 before adding, then back to an uint8
         if numpy_bg is not None:
-            numpy_image += numpy_bg
+            numpy_image = np.clip(numpy_image.astype(np.int16)+numpy_bg, 0, 255).astype(np.uint8)
             
-        pil_image = PIL.Image.fromarray(numpy_image, mode='RGBA')
+        pil_image = PIL.Image.fromarray(numpy_image, mode='RGB')
         return pil_image
     
 
@@ -205,7 +204,8 @@ class Talking_Head():
     # stored vector state
     def change_pose(self):
         # Start timing this function for the EMA
-        start = time.time()
+        if self.automatic_EMA == True:
+            start = time.time()
 
         # Pose the image
         output_image = self.poser.pose(self.torch_input_image, self.pose)[0]
@@ -213,11 +213,12 @@ class Talking_Head():
         # Get the image
         img = self.get_pytorch_image(output_image, numpy_bg=self.numpy_bg)
 
-        # End the timer
-        val = time.time()-start
+        if self.automatic_EMA == True:
+            # End the timer
+            val = time.time()-start
 
-        # Update the EMA
-        self.update_EMA(val)
+            # Update the EMA
+            self.update_EMA(val)
 
         return img
 
@@ -226,8 +227,6 @@ class Talking_Head():
     # Given a position value, return the updated vector
     # for the new face with the eyes moved to the next position
     def Move_eyes(self):
-        blink_time = self.total_blink_time
-
         # Get the eye cycle. The cycle has `midpoint` number
         # of values to move the eye down and back up
         eye_cycle = [i/max(1, self.midpoint-1) for i in range(0, self.midpoint)]
@@ -264,7 +263,7 @@ class Talking_Head():
             # Calculate how many frames we want to blink for. Assuming
             # the EMA is correct, this will be the time to
             # blink divided by the expected value of generation
-            self.num_frames = (blink_time//self.EMA)+1
+            self.num_frames = (self.total_blink_time//self.EMA)
 
             # Get the number of frams to reach the midpoint
             self.midpoint = max(1, round(math.ceil(self.num_frames/2)))
@@ -278,7 +277,7 @@ class Talking_Head():
         self.pose[13] = eye_per
         self.pose[24] = dilate_per
         self.pose[25] = dilate_per
-        self.pose[26] = eye_per
+        # self.pose[26] = eye_per
 
         # for item in range(0, len(pose)):
         #     pose[item] = random.random()
@@ -307,10 +306,11 @@ class Talking_Head():
 
 def main():
     # Create the object
-    obj = Talking_Head("cuda:0", 0.66, "Talking_Head/data/illust/img.png")
+    obj = Talking_Head("cuda:0", 0.4, "Talking_Head/data/illust/../../../test.png")
 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
+    plt.axis('off')
 
     img = obj.change_pose()
     im = ax.imshow(img, animated=True)

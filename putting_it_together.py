@@ -317,7 +317,7 @@ class WaifuObj:
         # characteristics = "waifu, female, brown hair, blue eyes, sidelocks, slight blush, fox ears"
         # sent = "furious"
         # summary = "'I hope get know better' to viewer"
-        prompt = f"{settings}, {characteristics}, {sent+', ' if sent != '' else ''}'{summary}' to viewer"
+        prompt = f"{settings}, {characteristics}, {sent+', ' if sent != '' else ''}"#'{summary}' to viewer"
         return prompt
 
     # Get the audio input from the user
@@ -579,6 +579,7 @@ def blink_loop(img, fig, ax):
     from matplotlib import animation
     import numpy as np
     import matplotlib.pyplot as plt
+    plt.axis('off')
 
     # Initialize the Talking Head class to add movement to images
     img_anim = Talking_Head(torch.device("cuda:0"), 0.60)
