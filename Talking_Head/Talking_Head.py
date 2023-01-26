@@ -107,7 +107,7 @@ class Talking_Head():
         self.eye_num_frames = 0              # Initial frame count to blink
         self.eye_midpoint = 0
         self.total_blink_time_i = blink_time # Total time for a single blink cycle
-        self.eye_frame_disp = False
+        self.eye_frame_disp = False          # Is the next eye frame waiting to be shown?
 
 
         # The configuration cycle for moving the mouth
@@ -116,6 +116,7 @@ class Talking_Head():
         self.mouth_num_frames = 0              # Initial frame count to move the mouth
         self.mouth_midpoint = 0
         self.total_mouth_time = 0              # Total time for a single mouth cycle
+        self.mouth_frame_disp = False          # Is the next mouth frame waiting to be shown?
 
 
 
@@ -233,7 +234,9 @@ class Talking_Head():
             # Update the EMA
             self.update_EMA(val)
 
+        # The next eye frame and mouth frame has been displayed
         self.eye_frame_disp = True
+        self.mouth_frame_disp = True
 
         return img
 
@@ -293,6 +296,7 @@ class Talking_Head():
         self.pose[24] = dilate_per
         self.pose[25] = dilate_per
 
+        # The eye is now waiting for its frame to be shown
         self.eye_frame_disp = False
 
         # Return the new vector
@@ -307,6 +311,7 @@ class Talking_Head():
         # Reset flag and cumulator variables
         self.mouth_cycle_num = 0
         self.mouth_cycle_end = False
+        self.mouth_frame_disp = False
         
         # Store the time the mouth will be animated for
         self.total_mouth_time = total_mouth_time
@@ -352,6 +357,10 @@ class Talking_Head():
 
         # Update the pose
         self.pose[26] = mouth_per
+
+        # The mouth is now waiting for its
+        # frame to be shown
+        self.mouth_frame_disp = False
 
         # Return the new vector
         return self.pose
