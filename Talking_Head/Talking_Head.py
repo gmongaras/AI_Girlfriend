@@ -107,6 +107,7 @@ class Talking_Head():
         self.eye_num_frames = 0              # Initial frame count to blink
         self.eye_midpoint = 0
         self.total_blink_time_i = blink_time # Total time for a single blink cycle
+        self.eye_frame_disp = False
 
 
         # The configuration cycle for moving the mouth
@@ -232,6 +233,8 @@ class Talking_Head():
             # Update the EMA
             self.update_EMA(val)
 
+        self.eye_frame_disp = True
+
         return img
 
 
@@ -289,6 +292,8 @@ class Talking_Head():
         self.pose[13] = eye_per
         self.pose[24] = dilate_per
         self.pose[25] = dilate_per
+
+        self.eye_frame_disp = False
 
         # Return the new vector
         return self.pose
