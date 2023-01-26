@@ -97,14 +97,26 @@ class Talking_Head():
         # Current position vector itinialized as zeros
         self.pose = torch.zeros((42)).to(self.device)
 
+
+
         # The configuration cycle for blinking
         # self.eye_percent = [0.25, 0.5, 0.75, 1, 0.75, 0.5, 0.25, 0, 0, 0]
         # self.dilate_percent = [0, 0.2, 0.4, 0.8, 0.4, 0.2, 0, 0, 0, 0]
         self.eye_cycle_num = 0               # Current eye cycle index
-        self.cycle_end = False               # Has the blink cycle ended?
-        self.num_frames = 0                  # Initial frame count to blink
-        self.midpoint = 0
+        self.eye_cycle_end = False           # Has the blink cycle ended?
+        self.eye_num_frames = 0              # Initial frame count to blink
+        self.eye_midpoint = 0
         self.total_blink_time_i = blink_time # Total time for a single blink cycle
+
+
+        # The configuration cycle for moving the mouth
+        self.mouth_cycle_num = 0               # Current mouth cycle index
+        self.mouth_cycle_end = False           # Has the mouth cycle ended?
+        self.mouth_num_frames = 0              # Initial frame count to move the mouth
+        self.mouth_midpoint = 0
+        self.total_mouth_time = 0              # Total time for a single mouth cycle
+
+
 
         # Increase the total blink cycle time by 2 so that it has a chance to
         # actually work. If this isn't set to a high value at first, it
@@ -173,7 +185,7 @@ class Talking_Head():
         global img2
         img2 = img
         fg = remove(img)
-        bg = np.array(img)-np.array(fg.convert("RGB"))
+        bg = np.array(img)[:, :, :3]-np.array(fg.convert("RGB"))[:, :, :3]
         return fg, bg
 
 
@@ -229,13 +241,13 @@ class Talking_Head():
     def Move_eyes(self):
         # Get the eye cycle. The cycle has `midpoint` number
         # of values to move the eye down and back up
-        eye_cycle = [i/max(1, self.midpoint-1) for i in range(0, self.midpoint)]
+        eye_cycle = [i/max(1, self.eye_midpoint-1) for i in range(0, self.eye_midpoint)]
         eye_cycle += eye_cycle[::-1][1:]
 
         # The dilation cycle is the same as the eye cycle, but
         # the cycle start later and ends earlier. This cycle should
         # be 0 during the beginning and last frames
-        dilate_cycle = [0] + [i/(self.midpoint+1) for i in range(0, self.midpoint-1)]
+        dilate_cycle = [0] + [i/(self.eye_midpoint+1) for i in range(0, self.eye_midpoint-1)]
         dilate_cycle += dilate_cycle[::-1][1:]
 
         # Get the value in the cycle. The value in the
@@ -254,7 +266,7 @@ class Talking_Head():
         if self.eye_cycle_num >= len(eye_cycle)-1:
             # The cycle has ended, set the flag and
             # set the cycle index to 0
-            self.cycle_end = True
+            self.eye_cycle_end = True
             self.eye_cycle_num = 0
 
             # Decrease the initial blink rate
@@ -263,10 +275,10 @@ class Talking_Head():
             # Calculate how many frames we want to blink for. Assuming
             # the EMA is correct, this will be the time to
             # blink divided by the expected value of generation
-            self.num_frames = (self.total_blink_time//self.EMA)
+            self.eye_num_frames = (self.total_blink_time//self.EMA)
 
             # Get the number of frams to reach the midpoint
-            self.midpoint = max(1, round(math.ceil(self.num_frames/2)))
+            self.eye_midpoint = max(1, round(math.ceil(self.eye_num_frames/2)))
 
         # If not, update the eye cycle num
         else:
@@ -277,26 +289,72 @@ class Talking_Head():
         self.pose[13] = eye_per
         self.pose[24] = dilate_per
         self.pose[25] = dilate_per
-        # self.pose[26] = eye_per
-
-        # for item in range(0, len(pose)):
-        #     pose[item] = random.random()
-        # for item in range(37, 42):
-        #     pose[item] = (random.random()*2)-1
 
         # Return the new vector
         return self.pose
+
+
+    # Configure the stored states to move the mouth again.
+    # This should be called before moving the mouth again
+    # total_mouth_time - Time from beginning to end to move the mouth
+    #                    next from open to closed
+    def setup_mouth_movement(self, total_mouth_time):
+        # Reset flag and cumulator variables
+        self.mouth_cycle_num = 0
+        self.mouth_cycle_end = False
+        
+        # Store the time the mouth will be animated for
+        self.total_mouth_time = total_mouth_time
+
+        # Calculate how many frames we want to move the mouth for.
+        # Assuming the EMA is correct, this will be the time to
+        # move the mouth divided by the expected value of generation
+        self.mouth_num_frames = (self.total_mouth_time//self.EMA)
+
+        # Get the number of frames to reach the midpoint of the
+        # mouth cycle.
+        self.mouth_midpoint = max(1, round(math.ceil(self.mouth_num_frames/2)))
     
 
     # Given a position value, return the updated vector
     # for the new face with the mouth moved to the next position
-    # pos - Current movement position. Cen be cumulative
-    #       or in the range of possible values
-    def Move_mouth(self, pos):
+    def Move_mouth(self):
+        # Get the eye cycle. The cycle has `midpoint` number
+        # of values to move the mouth open and close
+        mouth_cycle = [i/max(1, self.mouth_midpoint-1) for i in range(0, self.mouth_midpoint)]
+        mouth_cycle += mouth_cycle[::-1][1:]
+
+        # Get the value in the cycle. The value in the
+        # cycle is the current cycle number. If the EMA
+        # was too large, this may overshoot, so default
+        # to a value of 0
+        try:
+            mouth_per = mouth_cycle[self.mouth_cycle_num]
+        except IndexError:
+            mouth_per = 0
+
+        # Has the last cycle been reached? If so,
+        # signify the end and reset the cycle number
+        if self.mouth_cycle_num >= len(mouth_cycle)-1:
+            # The cycle has ended, set the flag and
+            # set the cycle index to 0
+            self.mouth_cycle_end = True
+            self.mouth_cycle_num = 0
+
+        # If not, update the eye cycle num
+        else:
+            self.mouth_cycle_num += 1
+
+        # Update the pose
+        self.pose[26] = mouth_per
+
+        # Return the new vector
+        return self.pose
+
         # Get the new position
         talking_per = self.talking_percent[pos%len(self.talking_percent)]
 
-        # Update the vector to make the image mover its mouth
+        # Update the vector to make the image move its mouth
         self.pose[26] = talking_per
 
         # Return the new vector
@@ -306,7 +364,7 @@ class Talking_Head():
 
 def main():
     # Create the object
-    obj = Talking_Head("cuda:0", 0.4, "Talking_Head/data/illust/../../../test.png")
+    obj = Talking_Head("cuda:0", 0.6, "Talking_Head/data/illust/../../../test.png")
 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -324,13 +382,13 @@ def main():
         im.set_array(img)
 
         # Wait a little to blink again
-        if obj.cycle_end:
+        if obj.eye_cycle_end:
             # Blink anywhere between 2 and 7 secods with
             # a mean around 5 seconds (avg blink wait time)
             t = np.clip(np.random.normal(5, 1, size=1)[0], 2, 7)
 
             plt.pause(t)
-            obj.cycle_end = False
+            obj.eye_cycle_end = False
 
     ani = animation.FuncAnimation(fig, update_image, interval=0)
     plt.show()
