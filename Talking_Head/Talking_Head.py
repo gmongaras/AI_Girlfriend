@@ -365,15 +365,6 @@ class Talking_Head():
         # Return the new vector
         return self.pose
 
-        # Get the new position
-        talking_per = self.talking_percent[pos%len(self.talking_percent)]
-
-        # Update the vector to make the image move its mouth
-        self.pose[26] = talking_per
-
-        # Return the new vector
-        return self.pose
-
 
 
 def main():

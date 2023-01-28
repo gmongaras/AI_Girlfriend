@@ -191,7 +191,7 @@ class WaifuObj:
         """
         # Sizes of the three parts
         self.summ_size_max = 256 # Used for 1
-        self.block_size = 200 # Used for 2 and 3
+        self.block_size = 150 # Used for 2 and 3
         self.num_blocks = 4 # Used for 2
 
         # the three parts
@@ -237,7 +237,7 @@ class WaifuObj:
 
 
 
-        # Dummary variable where the thread
+        # Dummy variable where the thread
         # that animates the picture can be accessed from
         self.anim_thread = None
 
@@ -353,7 +353,7 @@ class WaifuObj:
                 enter_pressed = False
                 break
 
-                # Stop and close the stream 
+        # Stop and close the stream 
         stream.stop_stream()
         stream.close()
         # Terminate the PortAudio interface
