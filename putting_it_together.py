@@ -145,6 +145,8 @@ class WaifuObj:
 
         # Get the image generation model if
         # the GPT model is notused
+        # https://huggingface.co/EleutherAI/gpt-neo-1.3B/
+        # Max len is 2048
         print("Initializing custom text model")
         self.other_text_model = pipeline('text-generation',model=custom_model_path,
                         tokenizer='EleutherAI/gpt-neo-1.3B',max_new_tokens=50,
@@ -699,8 +701,6 @@ def main(obj, custom_audio, custom_model, img_settings, img_characteristics, gui
             ret_text = obj.get_response()
         else:
             ret_text = obj.get_response(GPT_key)
-
-        print(ret_text)
         
         # Create audio and the image for the returned text
         if len(ret_text) > 3:

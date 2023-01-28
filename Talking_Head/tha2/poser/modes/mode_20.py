@@ -274,8 +274,8 @@ def create_poser(
         device: torch.device,
         module_file_names: Optional[Dict[str, str]] = None,
         eyebrow_morphed_image_index: int = EyebrowMorphingCombiner00.EYEBROW_IMAGE_NO_COMBINE_ALPHA_INDEX,
-        default_output_index: int = 0) -> Poser:
-    dir = "Talking_Head/data"
+        default_output_index: int = 0,
+        dir: str = "Talking_Head/data") -> Poser:
     if module_file_names is None:
         module_file_names = {}
     if KEY_EYEBROW_DECOMPOSER not in module_file_names:

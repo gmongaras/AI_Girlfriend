@@ -88,14 +88,14 @@ class Talking_Head():
         self.automatic_EMA = automatic_EMA
 
         # Load in the model
-        self.poser = mode_20.create_poser(device)
+        self.poser = mode_20.create_poser(device, dir="../Talking_Head/data")
 
         # Load the new image in if any
         if img_path is not None or img is not None:
             self.load_new_image(path=img_path, img=img)
 
         # Current position vector itinialized as zeros
-        self.pose = torch.zeros((42)).to(self.device)
+        self.pose = torch.zeros((42), dtype=torch.float16).to(self.device)
 
 
 
