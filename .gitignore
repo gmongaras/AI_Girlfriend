@@ -11,6 +11,7 @@ Audio_Generation/Generation_Scripts/saved_models
 Audio_Generation/Generation_Scripts/data/
 Talking_Head/talking-head-anime-2-demo/data/*.pt
 vosk_models/
+!Finetuning/gathering_data/scraping.py
 
 
 

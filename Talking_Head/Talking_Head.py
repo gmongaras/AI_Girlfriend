@@ -229,7 +229,7 @@ class Talking_Head():
 
         if self.automatic_EMA == True:
             # End the timer
-            val = time.time()-start
+            val = time.time()-start+0.01
 
             # Update the EMA
             self.update_EMA(val)

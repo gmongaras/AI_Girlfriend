@@ -158,6 +158,7 @@ class WaifuObj:
 
 
         # Load in the large summarizer model
+        # https://huggingface.co/pszemraj/led-large-book-summary
         self.summarizer = pipeline(
             "summarization",
             'pszemraj/led-large-book-summary',
