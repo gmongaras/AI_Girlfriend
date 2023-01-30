@@ -606,8 +606,11 @@ class Girlfriend_Obj:
         if len(ret_text) > 3:
             
             # Create the audio clip
-            mixer.stop()
-            mixer.music.unload()
+            try:
+                mixer.stop()
+                mixer.music.unload()
+            except pygame.error:
+                pass
             self.create_audio(ret_text, custom_audio)
             
             # Start the mouth movement loop
@@ -793,15 +796,20 @@ class Girlfriend_Obj:
         audio_trans = self.extract_word_data(filename)
         
         # Play the audio
-        mixer.init()
-        mixer.stop()
-        mixer.music.unload()
         try:
-            mixer.music.load(filename)
-            mixer.music.play()
+            mixer.init()
+            mixer.stop()
+            mixer.music.unload()
+            try:
+                mixer.music.load(filename)
+                mixer.music.play()
+            except pygame.error:
+                s = mixer.Sound(filename)
+                s.play()
         except pygame.error:
-            s = mixer.Sound(filename)
-            s.play()
+            from IPython.display import Audio, display, clear_output
+            clear_output(wait=True)
+            display(Audio(filename, autoplay=True))
         
         # Iterate over all parts of the audio transcription
         for idx, part in enumerate(audio_trans):
