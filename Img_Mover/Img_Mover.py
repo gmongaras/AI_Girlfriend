@@ -126,9 +126,6 @@ class Img_Mover():
         # needs time to warm up
         self.total_blink_time = 2
 
-        # configuration cycle for talking
-        self.talking_percent = [0, 0.2, 0.4, 0.8, 0.4, 0.2, 0, 0, 0, 0]
-
         # EMA giving the expected value of the new image generation.
         # This statistic will be used as a correcting factor
         self.EMA_rate = 0.4

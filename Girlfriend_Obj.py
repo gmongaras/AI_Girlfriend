@@ -39,7 +39,8 @@ from Img_Mover.Img_Mover import Img_Mover
 import pygame
 import gradio as gr
 import threading
-
+from copy import deepcopy
+import math
 
 
 
@@ -59,6 +60,12 @@ class Girlfriend_Obj:
     #   saved_memory - (Optionl) path to the json file with the
     #                   saved memory to load in
     def __init__(self, initial_summary="", initial_prompt="", load_custom_audio=False, audio_model_path=None, audio_data_path=None, custom_model_path=None, saved_memory=None):
+        # Save the initial configuration in case
+        # the user resets the memory
+        self.initial_summary = initial_summary
+        self.initial_prompt = initial_prompt
+        
+        
         """Class Globals"""
         # Used to stop the blinking loop if needed
         self.stop_animating = False
@@ -96,6 +103,10 @@ class Girlfriend_Obj:
 
         # Initialize the summary model
         self.summ_model = KeyBERT()
+
+        # Vosk SST model
+        model_path = "vosk_models/vosk-model-small-en-us-0.15"
+        self.vosk_model = vosk_Model(model_path)
 
 
         
@@ -701,18 +712,14 @@ class Girlfriend_Obj:
     
     # Function to extract the word data from a mp3 file
     def extract_word_data(self, filename):
-        # Load in the model
-        model_path = "vosk_models/vosk-model-small-en-us-0.15"
-        model = vosk_Model(model_path)
-        
         # Make the audio a wav file
-        f = AudioSegment.from_mp3("tmp.mp3")
+        f = AudioSegment.from_mp3(filename)
         f.export("tmp.wav", format="wav")
         
         # Read in the audio
         with wave.open("tmp.wav", "rb") as wf:
             # Prepare the model for rekognition
-            rec = KaldiRecognizer(model, wf.getframerate())
+            rec = KaldiRecognizer(self.vosk_model, wf.getframerate())
             rec.SetWords(True)
 
             # get the list of JSON dictionaries
@@ -917,3 +924,30 @@ class Girlfriend_Obj:
                     yield img, gr.update(), gr.update()
             
             time.sleep(0.0001)
+
+
+
+
+
+    # Reset the memory of the model
+    def reset_memory(self):
+        self.past_summ = deepcopy(self.initial_summary)
+        self.past_output = ["" for i in range(self.num_blocks)]
+        self.cur_prompt = deepcopy(self.initial_prompt)
+
+
+
+    # Used to change the blink time given a new rate. This value
+    # is limited between 0.5 and 2
+    def change_blink_time(self, new_blink_time):
+        min_val = 0.5
+        max_val = 2.0
+
+        # Limit the blink time
+        new_blink_time = min(max_val, max(min_val, new_blink_time))
+
+        # Change the blink time
+        self.img_anim.total_blink_time_i = new_blink_time
+        self.img_anim.total_blink_time = new_blink_time
+        self.img_anim.eye_num_frames = (self.img_anim.total_blink_time//self.img_anim.EMA)
+        self.img_anim.eye_midpoint = max(1, round(math.ceil(self.img_anim.eye_num_frames/2)))
