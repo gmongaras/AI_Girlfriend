@@ -469,7 +469,7 @@ class Girlfriend_Obj:
 
             # Get the oldest item in the past output and clean it
             oldest_item = self.past_output[0]
-            oldest_item = oldest_item.replace("You: ", "").replace("Me: ", "").replace("  ", " ").replace("  ", " ").replace("  ", " ").replace("  ", " ")
+            oldest_item = oldest_item.replace("Girlfriend: ", "").replace("Me: ", "").replace("  ", " ").replace("  ", " ").replace("  ", " ").replace("  ", " ")
 
             # Store the subset and move all subsets
             # up in the queue
@@ -483,7 +483,7 @@ class Girlfriend_Obj:
             if oldest_item != "":
                 # Summarize it as the current summary
                 self.past_summ = self.summarizer(
-                    self.past_summ + "\n\n\n\n" + oldest_item,
+                    self.past_summ + "\n\n" + oldest_item,
                     min_length=16,
                     max_length=512,
                     no_repeat_ngram_size=3,
@@ -510,7 +510,7 @@ class Girlfriend_Obj:
         [summary of the past]\n\n\n\n
         [saved prompts from the past][current prompt]
         """
-        text = self.past_summ + "\n\n\n\n" +\
+        text = self.past_summ + "\n\n" +\
             "".join(self.past_output)+\
             self.cur_prompt
 
@@ -527,7 +527,7 @@ class Girlfriend_Obj:
         resp = resp.split(":")[-1].strip()
 
         # Add the new text to the prompt
-        self.cur_prompt += f"You: {resp}\n\n"
+        self.cur_prompt += f"Girlfriend: {resp}\n"
 
         # Before returning the respnse, we need to make sure
         # the text is being summarized
@@ -884,8 +884,9 @@ class Girlfriend_Obj:
         self.img_anim.eye_cycle_end = False
         
         # Start the blink loop
-        self.b_thread = threading.Thread(target=self.run_blink_loop, args=())
-        self.b_thread.start()
+        if self.b_thread == None:
+            self.b_thread = threading.Thread(target=self.run_blink_loop, args=())
+            self.b_thread.start()
         
         while True:
             # If the image is forced to be reloaded, generate
