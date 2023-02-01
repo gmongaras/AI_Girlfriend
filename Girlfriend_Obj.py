@@ -127,15 +127,17 @@ class Girlfriend_Obj:
         print("Image model initialized!")
 
         # Get the image generation model if
-        # the GPT model is notused
+        # the GPT model is not used
+        # https://huggingface.co/gmongaras/gpt-anime-sub-1.3B/
         # https://huggingface.co/EleutherAI/gpt-neo-1.3B/
         # Max len is 2048
         print("Initializing custom text model")
-        self.other_text_model = pipeline('text-generation',model=custom_model_path,
-                        tokenizer='EleutherAI/gpt-neo-1.3B',max_new_tokens=50,
-                        torch_dtype=torch.float16,framework="pt",
-                        device=torch.device("cuda:0"),
-                        pad_token_id=50256)
+        self.other_text_model = pipeline('text-generation',model="gmongaras/gpt-anime-sub-1.3B",
+                      tokenizer="EleutherAI/gpt-neo-1.3B",
+                      max_new_tokens=50,
+                      torch_dtype=torch.float16,framework="pt",
+                      device=torch.device("cuda:0"),
+                      pad_token_id=50256)
         print("Custom text model initialized!")
         # Otherwise, use the GPT model
 
