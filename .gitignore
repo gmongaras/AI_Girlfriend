@@ -1,17 +1,4 @@
-Depreciated/.ipynb_checkpoints
-Depreciated/Finetuning/gathering_data
-Depreciated/Finetuning/data_clean
-Depreciated/Finetuning/outputs
-Depreciated/Finetuning/train_data.txt
-Depreciated/Audio_Generation/Real-Time-Voice-Cloning-master/Real-Time-Voice-Cloning-master/saved_models
-Depreciated/Audio_Generation/Real-Time-Voice-Cloning-master/Real-Time-Voice-Cloning-master/ind_generation/saved_models
-Depreciated/Audio_Generation/Real-Time-Voice-Cloning-master/Real-Time-Voice-Cloning-master/ind_generation/data/
-Depreciated/D/
-Depreciated/Audio_Generation/Generation_Scripts/saved_models
-Depreciated/Audio_Generation/Generation_Scripts/data/
-Depreciated/Talking_Head/talking-head-anime-2-demo/data/*.pt
-Depreciated/vosk_models/
-Depreciated/!Finetuning/gathering_data/scraping.py
+Depreciated/
 .ipynb_checkpoints
 
 
