@@ -13,9 +13,6 @@ Depreciated/Talking_Head/talking-head-anime-2-demo/data/*.pt
 Depreciated/vosk_models/
 Depreciated/!Finetuning/gathering_data/scraping.py
 .ipynb_checkpoints
-vosk_models/
-Img_Mover/pretrained/
-CustomModel/
 
 
 
