@@ -817,7 +817,7 @@ class Girlfriend_Obj:
                 s.play()
         except pygame.error:
             from IPython.display import Audio, display, clear_output
-            clear_output(wait=True)
+            #clear_output(wait=True)
             display(Audio(filename, autoplay=True))
         
         # Iterate over all parts of the audio transcription
