@@ -7,7 +7,7 @@ I thought it may contains some useful info and I decided not to delete it.
 
 The colab that goes along with this repository can be found [here](https://colab.research.google.com/drive/1Nl5ioIkJdrsE-IoMUNPMsDt-wMi18JLN?usp=sharing)
 
-The medium article going along with this repository can be found [here]()
+The medium article going along with this repository can be found [here](https://gmongaras.medium.com/coding-a-virtual-ai-girlfriend-f951e648aa46)
 
 This repo has two spilts:
 1. [A reduced version for cloning purposes](https://github.com/gmongaras/AI_Girlfriend_Reduced)
