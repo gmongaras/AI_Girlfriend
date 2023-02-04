@@ -32,6 +32,12 @@ Settings tab:
 3. A "Characteristics" box including characteristics to add to the image.
 4. A "Guidance Value" box with a single floating point number. This number tells the model how much to use classifier guidance. The higher the number, the better the image usually looks, but the less creative the model is (up to a point). This value is essentially a tradeoff between variance (low) and fidelity (high).
 5. A setting to change the blink time. This value can be between 0.5 and 2 seconds and times how long the average blink should take. A time of 2 seconds takes the AI girlfriend 2 second to blink once.
+6. A "Load memory" area with a textbox and button. Click the button to upload a memory file. THe textbox states whether this upload was a success or not.
+7. A "Reset Memory" button which resets the memory of the AI girlfriend completely.
+
+Passive:
+- As the conversation goes on, a file named "config_file.json" is generated. This file stores the memory of the current AI girlfriend so it can be loaded if needed.
+- As the conversation goes on, it is summarized in the background to save memory and allow for an infinite coversation while trying to retain a memory for the AI girlfriend.
 
 
 # Example Screenshots
