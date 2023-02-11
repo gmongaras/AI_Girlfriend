@@ -14,6 +14,13 @@ This repo has two spilts:
 2. [A very reduced version for the article I wrote](https://github.com/gmongaras/AI_Girlfriend_Medium)
 
 
+To run the code from this repo:
+1. Clone the repo
+2. Start a terminal in the root directory of this repo
+3. type `jupyter lab`
+4. Open `main.ipynb` and run the cells. The topmost cell can be uncommented to download the necessary packages and the versions that worked on my machine.
+
+
 # Features
 Generation tab:
 1. You can speak to her using the "Record From Audio" button.
