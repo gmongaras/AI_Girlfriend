@@ -14,7 +14,7 @@ This repo has two spilts:
 2. [A very reduced version for the article I wrote](https://github.com/gmongaras/AI_Girlfriend_Medium)
 
 
-To run the code from this repo:
+To run the code from this repo (GPU required):
 1. Clone the repo
 2. Start a terminal in the root directory of this repo
 3. type `jupyter lab`
