@@ -14,11 +14,24 @@ This repo has two spilts:
 2. [A very reduced version for the article I wrote](https://github.com/gmongaras/AI_Girlfriend_Medium)
 
 
-To run the code from this repo (GPU required):
-1. Clone the repo
+# Running The Code Locally
+
+To run the code, first make sure you have a Cuda GPU with `at least 12 GB of VRAM available`.
+
+If your system has 12 GB of VRAM, then you should be good to go for running the program locally.
+
+If not, then you can always use the colab found [here](https://colab.research.google.com/drive/1Nl5ioIkJdrsE-IoMUNPMsDt-wMi18JLN?usp=sharing)
+
+Below are the steps to setup your environment:
+1. Clone the repository to your local machine
 2. Start a terminal in the root directory of this repo
-3. type `jupyter lab`
-4. Open `main.ipynb` and run the cells. The topmost cell can be uncommented to download the necessary packages and the versions that worked on my machine.
+3. Download the correct version of PyTorch based on your Cuda version from using the following link: `https://pytorch.org/get-started/locally/`
+4. run the command `pip install -r requirements.txt`
+5. type `jupyter lab`
+6. Open `main.ipynb` and run the cells. The topmost cell can be uncommented to download the necessary packages and the versions that worked on my machine.
+
+Note: If PyAudio is having issues, I found that running the following command in WSL-Ubuntu fixes the issue:
+`apt install libasound2-dev portaudio19-dev libportaudio2 libportaudiocpp0 ffmpeg`
 
 
 # Features
