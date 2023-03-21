@@ -1,0 +1,21 @@
+!pip install numpy==1.23.5
+!pip install torch==1.13.1+cu116 torchvision==0.14.1+cu116 torchaudio==0.13.1+cu116
+!pip install diffusers==0.11.1
+!pip install --ignore-installed Pillow==9.3.0
+!pip install openai==0.26.4
+!pip install SpeechRecognition==3.9.0
+!pip install pygame==2.1.2
+!pip install opencv-python==4.7.0.68
+!pip install vosk==0.3.45
+!pip install pydub==0.25.1
+!pip install matplotlib==3.6.3
+!pip install multiprocess==0.70.13
+!pip install gradio==3.16.2
+!pip install gtts==2.3.0
+!pip install nltk==3.7
+!pip install wave==0.0.2
+!pip install transformers==4.25.1
+!pip install keybert==0.7.0
+!pip install rembg==2.0.30
+!pip install accelerate
+!pip install PyAudio==0.2.13
