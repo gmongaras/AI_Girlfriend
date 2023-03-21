@@ -5,7 +5,10 @@ a bunch of functions needed to make the program work.
 
 
 
-
+# NLTK downloads
+import nltk
+nltk.download('vader_lexicon')
+nltk.download('stopwords')
 
 
 import openai
