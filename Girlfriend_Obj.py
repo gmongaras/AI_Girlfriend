@@ -10,6 +10,7 @@ a bunch of functions needed to make the program work.
 
 import openai
 from gtts import gTTS
+from gtts.tts import gTTSError
 from pygame import mixer
 import torch
 from torch import autocast
@@ -708,8 +709,11 @@ class Girlfriend_Obj:
             audioObj.synthesize(text)
             audioObj.vocode(play_audio=False)
         else:
-            myobj = gTTS(text=text, lang='en', slow=False)
-            myobj.save("tmp.mp3")
+            try:
+                myobj = gTTS(text=text, lang='en', slow=False)
+                myobj.save("tmp.mp3")
+            except gTTSError:
+                pass
 
     
     # Function to extract the word data from a mp3 file
