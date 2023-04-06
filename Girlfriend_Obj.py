@@ -123,8 +123,7 @@ class Girlfriend_Obj:
         print("Initializing image model...")
         self.imgGen = StableDiffusionPipeline.from_pretrained(
             'hakurei/waifu-diffusion',
-            torch_dtype=torch.float16,
-            cache_dir="D:/python-libs/hugging-face-cache",
+            torch_dtype=torch.float16
         ).to('cuda')
         # Remove filter
         self.imgGen.safety_checker = lambda images, clip_input: (images, False)
